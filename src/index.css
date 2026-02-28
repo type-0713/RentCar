@@ -1,0 +1,261 @@
+@import "tailwindcss";
+
+/* Asosiy konteyner */
+.dl-container {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+    line-height: 1.6;
+}
+
+.wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.section-title {
+    text-align: center;
+    color: #002e5b;
+    text-transform: uppercase;
+    font-weight: 800;
+    margin-bottom: 40px;
+    font-size: 28px;
+}
+
+/* Avtomobillar setkasi */
+.car-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    padding-bottom: 50px;
+}
+
+.car-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.car-img-box {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.car-img-box img {
+    max-width: 100%;
+    height: auto;
+}
+
+.car-name {
+    color: #002e5b;
+    font-weight: bold;
+    margin: 15px 0;
+    text-transform: uppercase;
+    font-size: 16px;
+}
+
+.car-info {
+    min-height: 90px;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #666;
+}
+
+.car-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.price {
+    display: block;
+    font-size: 22px;
+    font-weight: 800;
+    color: #002e5b;
+}
+
+.per-day {
+    font-size: 12px;
+    color: #999;
+}
+
+/* Tugma gradienti */
+.btn-gradient {
+    background: linear-gradient(90deg, #0056b3, #002e5b);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 12px;
+    cursor: pointer;
+    transition: opacity 0.3s;
+}
+
+.btn-gradient:hover {
+    opacity: 0.9;
+}
+
+/* Video bo'limi */
+.video-section {
+    background-color: #e9e9e9;
+    padding: 60px 0;
+}
+
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.video-card {
+    background: white;
+    padding: 10px;
+    border-radius: 12px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.video-card iframe {
+    width: 100%;
+    height: 250px;
+    border-radius: 8px;
+}
+
+/* Kategoriyalar */
+.categories-section {
+    padding: 80px 0;
+}
+
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 40px;
+    text-align: center;
+}
+
+.cat-item h3 {
+    font-size: 22px;
+    margin-bottom: 10px;
+    color: #002e5b;
+}
+
+.cat-item p {
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 20px;
+}
+
+/* Ko'k servis qutisi */
+.services-section {
+    padding-bottom: 80px;
+}
+
+.services-blue-box {
+    background: linear-gradient(135deg, #0056b3, #002e5b);
+    border-radius: 30px;
+    padding: 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 30px;
+    color: white;
+    text-align: center;
+}
+
+.service-item h4 {
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.service-item p {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+/* Mobil moslashuvchanlik */
+@media (max-width: 768px) {
+    .services-blue-box {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Premium UI kit */
+.premium-title {
+    font-family: "Outfit", "Segoe UI", sans-serif;
+    letter-spacing: -0.02em;
+    font-weight: 800;
+    background: linear-gradient(90deg, #f8fafc 0%, #cbd5e1 40%, #f8fafc 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.premium-card {
+    background:
+        linear-gradient(160deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 20px;
+    backdrop-filter: blur(14px);
+    box-shadow:
+        0 20px 45px rgba(15, 23, 42, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.premium-button {
+    border: 0;
+    border-radius: 12px;
+    padding: 12px 18px;
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: linear-gradient(120deg, #0d9488 0%, #2563eb 50%, #0ea5e9 100%);
+    box-shadow: 0 14px 30px rgba(37, 99, 235, 0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.premium-button:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+    box-shadow: 0 18px 34px rgba(37, 99, 235, 0.45);
+}
+
+.premium-button:active {
+    transform: translateY(0);
+}
+
+.premium-input {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(15, 23, 42, 0.35);
+    color: #e2e8f0;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.premium-input::placeholder {
+    color: #94a3b8;
+}
+
+.premium-input:focus {
+    border-color: rgba(45, 212, 191, 0.9);
+    box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.2);
+    background: rgba(15, 23, 42, 0.5);
+}
