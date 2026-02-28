@@ -20,6 +20,19 @@ export const googleProvider = new GoogleAuthProvider();
 export const appleProvider = new OAuthProvider('apple.com');
 export const microsoftProvider = new OAuthProvider('microsoft.com');
 
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
+
+appleProvider.addScope('email');
+appleProvider.addScope('name');
+
+microsoftProvider.addScope('openid');
+microsoftProvider.addScope('profile');
+microsoftProvider.addScope('email');
+microsoftProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
 if (typeof window !== 'undefined') {
   void isSupported()
     .then((supported) => {

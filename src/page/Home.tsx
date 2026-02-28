@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ChangeEvent, type FormEvent } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { Star, MapPin, Phone, Mail, Menu, X, Eye, EyeOff, ArrowRight, Check, Plus, Trash2, LogOut, Users, Car as CarIcon, Send, MessageCircle, AlertCircle, Search, Sun, Moon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -24,10 +24,11 @@ const AUTH_CHANGE_EVENT = 'dlrent-auth-change';
 const THEME_STORAGE_KEY = 'dlrent_theme';
 const ADMIN_EMAIL = 'admin987@gmail.com';
 const ADMIN_PASSWORD = '654987';
-const API_URL = 'firebase://local';
+const BACKEND_MODE = 'server';
+const API_URL = 'http://localhost:3001';
 const ENABLE_GOOGLE_AUTH = import.meta.env.VITE_ENABLE_GOOGLE_AUTH !== 'false';
-const ENABLE_APPLE_AUTH = import.meta.env.VITE_ENABLE_APPLE_AUTH === 'true';
-const ENABLE_MICROSOFT_AUTH = import.meta.env.VITE_ENABLE_MICROSOFT_AUTH === 'true';
+const ENABLE_APPLE_AUTH = import.meta.env.VITE_ENABLE_APPLE_AUTH !== 'false';
+const ENABLE_MICROSOFT_AUTH = import.meta.env.VITE_ENABLE_MICROSOFT_AUTH !== 'false';
 const MIN_CAR_IMAGES = 5;
 const MAX_CAR_IMAGES = 10;
 const MAX_IMAGE_SIZE_MB = 4;
@@ -184,6 +185,11 @@ interface ApiJsonResponse<T = unknown> {
   json: () => Promise<T>;
 }
 
+interface ApiErrorPayload {
+  message: string;
+  code?: string;
+}
+
 const createApiJsonResponse = <T,>(data: T, status = 200): ApiJsonResponse<T> => ({
   ok: status >= 200 && status < 300,
   status,
@@ -200,7 +206,28 @@ const parseApiPath = (url: string) => {
 
 const createNumericId = () => Date.now() + Math.floor(Math.random() * 100000);
 
+const getApiErrorMessage = async (response: ApiJsonResponse, fallback: string) => {
+  try {
+    const data = (await response.json()) as Partial<ApiErrorPayload>;
+    if (typeof data.message === 'string' && data.message.trim()) {
+      return data.message;
+    }
+  } catch {
+    // ignore payload parse errors
+  }
+  return fallback;
+};
+
 const apiFetch = async (url: string, init?: RequestInit): Promise<ApiJsonResponse> => {
+  if (BACKEND_MODE === 'server') {
+    const response = await fetch(url, init);
+    return {
+      ok: response.ok,
+      status: response.status,
+      json: async () => response.json()
+    };
+  }
+
   const method = (init?.method ?? 'GET').toUpperCase();
   const path = parseApiPath(url);
   const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
@@ -332,7 +359,22 @@ const apiFetch = async (url: string, init?: RequestInit): Promise<ApiJsonRespons
     return createApiJsonResponse({ message: 'Not found' }, 404);
   } catch (error) {
     console.error('Firestore API adapter error:', error);
-    return createApiJsonResponse({ message: 'Internal error' }, 500);
+    const code =
+      typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        typeof (error as { code?: unknown }).code === 'string'
+        ? (error as { code: string }).code
+        : '';
+    const rawMessage =
+      typeof error === 'object' &&
+        error !== null &&
+        'message' in error &&
+        typeof (error as { message?: unknown }).message === 'string'
+        ? (error as { message: string }).message
+        : 'Internal error';
+    const status = code.includes('permission-denied') ? 403 : 500;
+    return createApiJsonResponse({ message: rawMessage, code }, status);
   }
 };
 const BRAND_LOGO_SRC = brandLogo;
@@ -392,8 +434,14 @@ const Login = ({ onNavigate, onLoginSuccess, onEmailAuth, onSocialAuth }: LoginP
     setIsLoading(true);
     setError('');
 
-    // Admin credentials
+    // Admin credentials (also requires Firebase auth so Firestore writes are authorized)
     if (email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      const adminAuth = await onEmailAuth(email, password);
+      if (!adminAuth.ok) {
+        setError(adminAuth.message ?? 'Admin Firebase auth failed.');
+        setIsLoading(false);
+        return;
+      }
       onLoginSuccess(email, 'admin');
       onNavigate('admin');
       setIsLoading(false);
@@ -483,7 +531,7 @@ const Login = ({ onNavigate, onLoginSuccess, onEmailAuth, onSocialAuth }: LoginP
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  placeholder="��������"
+                  placeholder="********"
                   className={`w-full px-5 py-3.5 bg-white/10 border rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white/15 transition backdrop-blur-sm ${isPasswordTooShort
                     ? 'border-red-500 focus:border-red-400 focus:ring-red-400/30'
                     : 'border-white/20 focus:border-teal-400 focus:ring-teal-400/30'
@@ -656,7 +704,7 @@ const ChatModal = ({ booking, onClose, onSendMessage, messages }: ChatModalProps
         <div className="border-b border-white/10 p-5 flex items-center justify-between bg-white/5 rounded-t-2xl">
           <div>
             <h2 className="text-xl font-bold text-white">{booking.carName}</h2>
-            <p className="text-sm text-gray-400">Booking #{booking.id} � Chat with admin</p>
+            <p className="text-sm text-gray-400">Booking #{booking.id} • Chat with admin</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition p-1 rounded-lg hover:bg-white/10">
             <X className="w-6 h-6" />
@@ -765,11 +813,11 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
     );
   }
 
-  const carInfoCards = [
-    { icon: '?', label: 'Admin Rating', value: car.rating.toFixed(1) },
-    { icon: '??', label: 'Price / Day', value: car.price },
-    { icon: '??', label: 'Available Units', value: String(car.quantity) },
-    { icon: '?', label: 'Features Added', value: String(car.features.length) },
+  const carInfoCards: Array<{ icon: ReactNode; label: string; value: string }> = [
+    { icon: <Star className="w-6 h-6 text-yellow-400" />, label: 'Admin Rating', value: car.rating.toFixed(1) },
+    { icon: <span className="text-2xl font-bold text-teal-300">€</span>, label: 'Price / Day', value: car.price },
+    { icon: <CarIcon className="w-6 h-6 text-blue-300" />, label: 'Available Units', value: String(car.quantity) },
+    { icon: <Check className="w-6 h-6 text-emerald-300" />, label: 'Features Added', value: String(car.features.length) },
   ];
 
   const galleryImages = (car.imageGallery ?? []).filter((image) => typeof image === 'string' && image.trim().length > 0);
@@ -885,7 +933,10 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
               ) : (
                 <div className="text-9xl mb-8">{car.image}</div>
               )}
-              <h1 className="text-3xl font-bold text-white">{car.name}</h1>
+              <h1 className="text-3xl font-bold text-white flex items-center justify-center gap-2">
+                <CarIcon className="w-7 h-7 text-teal-300" />
+                {car.name}
+              </h1>
             </div>
 
             {sideImages.length > 0 && (
@@ -917,7 +968,7 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
             <div className="grid grid-cols-2 gap-4">
               {carInfoCards.map((spec, idx) => (
                 <div key={idx} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
-                  <p className="text-2xl mb-2">{spec.icon}</p>
+                  <div className="mb-2">{spec.icon}</div>
                   <p className="text-xs text-gray-400 mb-1">{spec.label}</p>
                   <p className="text-lg font-bold text-white">{spec.value}</p>
                 </div>
@@ -925,7 +976,10 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
             </div>
 
             <div className="mt-6 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
-              <p className="text-xs text-gray-400 mb-3">Admin Added Features</p>
+              <p className="text-xs text-gray-400 mb-3 flex items-center gap-2">
+                <Check className="w-4 h-4 text-teal-300" />
+                Admin Added Features
+              </p>
               {car.features.length === 0 ? (
                 <p className="text-sm text-gray-300">No features were added by admin for this car.</p>
               ) : (
@@ -951,7 +1005,10 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
                   {car.price}
                 </p>
                 <p className="text-gray-400 text-sm">{t('detail.perDayIncluded')}</p>
-                <p className="text-teal-300 text-sm mt-2">{t('detail.availableNow')}: {car.quantity}</p>
+                <p className="text-teal-300 text-sm mt-2 flex items-center gap-2">
+                  <CarIcon className="w-4 h-4" />
+                  {t('detail.availableNow')}: {car.quantity}
+                </p>
               </div>
 
               <div className="space-y-4 mb-8">
@@ -1057,7 +1114,10 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-white">{t('detail.reserveTitle')} {car.name}</h3>
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <CarIcon className="w-5 h-5 text-teal-300" />
+                {t('detail.reserveTitle')} {car.name}
+              </h3>
               <button
                 type="button"
                 onClick={() => setIsReserveModalOpen(false)}
@@ -1291,7 +1351,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
     name: '',
     price: '',
     features: [],
-    image: '??',
+    image: '🚗',
     imageBase64: '',
     imageGallery: [],
     rating: 4.8,
@@ -1303,7 +1363,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
   const [replyMessage, setReplyMessage] = useState('');
   const [isReplySending, setIsReplySending] = useState(false);
 
-  const carEmojis = ['??', '??', '???', '??', '??', '??', '??', '??'];
+  const carEmojis = ['🚗', '🚙', '🚘', '🏎️', '🚖', '🚕', '🚓', '🚔'];
   const incomingMessages = messages.filter((m) => m.sender === 'user').slice().reverse();
 
   const handleAddFeature = () => {
@@ -1399,7 +1459,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
       name: '',
       price: '',
       features: [],
-      image: '??',
+      image: '🚗',
       imageBase64: '',
       imageGallery: [],
       rating: 4.8,
@@ -1557,7 +1617,10 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
         )}
 
         <div>
-          <h2 className="text-2xl font-bold text-white mb-6">Fleet Management ({cars.length} cars)</h2>
+          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+            <CarIcon className="w-6 h-6 text-teal-400" />
+            Fleet Management ({cars.length} cars)
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {cars.map((car) => (
               <div key={car.id} className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-2xl p-6">
@@ -1571,9 +1634,18 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
                     <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
-                <h3 className="text-lg font-bold text-white mb-2">{car.name}</h3>
-                <p className="text-teal-300 mb-2">Available: {car.quantity}</p>
-                <p className="text-2xl font-bold text-teal-400 mb-3">{car.price}</p>
+                <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                  <CarIcon className="w-4 h-4 text-teal-300" />
+                  {car.name}
+                </h3>
+                <p className="text-teal-300 mb-2 flex items-center gap-2">
+                  <CarIcon className="w-4 h-4" />
+                  Available: {car.quantity}
+                </p>
+                <p className="text-2xl font-bold text-teal-400 mb-3 flex items-center gap-2">
+                  <span className="text-lg">€</span>
+                  {car.price.replace(/^€/, '')}
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {car.features.map((feat) => <span key={feat} className="text-xs px-2 py-1 bg-blue-500/20 text-blue-300 rounded-full">{feat}</span>)}
                 </div>
@@ -1764,12 +1836,18 @@ const Home = ({ onNavigate }: HomeProps) => {
                     alt="Featured car"
                     className="w-full h-52 sm:h-60 object-cover rounded-2xl mb-8 border border-white/20"
                   />
-                  <h2 className="text-3xl font-bold text-white mb-4">VW Arteon</h2>
+                  <h2 className="text-3xl font-bold text-white mb-4 flex items-center justify-center gap-2">
+                    <CarIcon className="w-7 h-7 text-teal-300" />
+                    VW Arteon
+                  </h2>
                   <p className="text-gray-300 text-lg mb-6">{t('home.featured')}</p>
                   <div className="flex justify-around text-center">
                     <div>
                       <p className="text-2xl font-bold text-teal-400">250+</p>
-                      <p className="text-xs text-gray-400 mt-1">{t('home.carsAvailable')}</p>
+                      <p className="text-xs text-gray-400 mt-1 flex items-center justify-center gap-1">
+                        <CarIcon className="w-3.5 h-3.5 text-teal-400" />
+                        {t('home.carsAvailable')}
+                      </p>
                     </div>
                     <div className="border-l border-white/10"></div>
                     <div>
@@ -1807,9 +1885,12 @@ const CarPark = ({ onNavigate, cars }: CarParkProps) => {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 pt-32 pb-20 animate-pageEnter">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-16 animate-fadeInUp">
-          <h1 className="text-5xl font-bold text-white mb-4">{t('carpark.title')}</h1>
+          <h1 className="text-5xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+            <CarIcon className="w-10 h-10 text-teal-400" />
+            {t('carpark.title')}
+          </h1>
           <p className="text-gray-400 text-lg">
-            {availableCars.length} � {totalAvailableCars} {t('home.carsAvailable')}
+            {availableCars.length} / {totalAvailableCars} {t('home.carsAvailable')}
           </p>
           <div className="mt-8 max-w-xl mx-auto">
             <label className="sr-only" htmlFor="fleet-search">Search cars</label>
@@ -1872,14 +1953,19 @@ const CarPark = ({ onNavigate, cars }: CarParkProps) => {
                         className="h-full w-full object-cover group-hover:scale-110 transition duration-500"
                       />
                     ) : (
-                      <div className="text-8xl group-hover:scale-110 group-hover:-rotate-6 transition duration-500">{car.image}</div>
+                      <div className="flex items-center justify-center h-full w-full group-hover:scale-110 transition duration-500">
+                        <CarIcon className="w-20 h-20 text-white/70" />
+                      </div>
                     )}
                   </div>
 
                   <div className="p-6 flex flex-col flex-grow">
                     <h3 className="text-xl font-bold text-white mb-3">{car.name}</h3>
                     <div className="flex items-center justify-between gap-3 mb-4">
-                      <p className="text-xs text-teal-300">{t('detail.availableNow')}: {car.quantity}</p>
+                      <p className="text-xs text-teal-300 flex items-center gap-1.5">
+                        <CarIcon className="w-3.5 h-3.5" />
+                        {t('detail.availableNow')}: {car.quantity}
+                      </p>
                       <div className="flex items-center gap-2">
                         <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                         <span className="text-yellow-400 font-semibold">{car.rating}</span>
@@ -2399,7 +2485,10 @@ const DLRentApp = () => {
         body: JSON.stringify(bookingPayload)
       });
 
-      if (!response.ok) throw new Error('Failed to create booking');
+      if (!response.ok) {
+        const message = await getApiErrorMessage(response, 'Failed to create booking');
+        throw new Error(message);
+      }
       const newBooking = (await response.json()) as Booking;
 
       setBookings((prev) => [...prev, newBooking]);
@@ -2433,7 +2522,11 @@ const DLRentApp = () => {
       return true;
     } catch (error) {
       console.error('Could not create booking:', error);
-      alert('Booking failed. Please try again.');
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Booking failed. Firebase ruxsatlari va login holatini tekshiring.'
+      );
       return false;
     }
   };
@@ -2457,14 +2550,21 @@ const DLRentApp = () => {
         body: JSON.stringify(messagePayload)
       });
 
-      if (!response.ok) throw new Error('Failed to send message');
+      if (!response.ok) {
+        const message = await getApiErrorMessage(response, 'Failed to send message');
+        throw new Error(message);
+      }
       const newMessage = (await response.json()) as ChatMessage;
 
       setMessages((prev) => [...prev, newMessage]);
       return true;
     } catch (error) {
       console.error('Could not send message:', error);
-      alert('Message was not sent. Check API connection.');
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Message was not sent. Firebase ruxsatlarini tekshiring.'
+      );
       return false;
     }
   };
@@ -2515,7 +2615,10 @@ const DLRentApp = () => {
           body: JSON.stringify({ quantity: updatedQuantity })
         });
 
-        if (!response.ok) throw new Error('Failed to update car quantity');
+        if (!response.ok) {
+          const message = await getApiErrorMessage(response, 'Failed to update car quantity');
+          throw new Error(message);
+        }
         const updatedCarData = (await response.json()) as Partial<Car>;
 
         setCars((prev) =>
@@ -2528,7 +2631,11 @@ const DLRentApp = () => {
         return;
       } catch (error) {
         console.error('Could not increase car quantity:', error);
-        alert('Car quantity was not updated. Check API connection.');
+        alert(
+          error instanceof Error
+            ? error.message
+            : 'Car quantity was not updated. Firebase ruxsatlarini tekshiring.'
+        );
         return;
       }
     }
@@ -2537,7 +2644,7 @@ const DLRentApp = () => {
       ...newCar,
       imageGallery: newCar.imageGallery,
       imageBase64: newCar.imageGallery[0] ?? newCar.imageBase64 ?? '',
-      price: newCar.price.startsWith('�') ? newCar.price : `�${newCar.price}`,
+      price: newCar.price.startsWith('€') ? newCar.price : `€${newCar.price}`,
       quantity: Math.max(1, newCar.quantity)
     };
 
@@ -2548,7 +2655,10 @@ const DLRentApp = () => {
         body: JSON.stringify(payload)
       });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {
+        const message = await getApiErrorMessage(response, `HTTP ${response.status}`);
+        throw new Error(message);
+      }
       const createdCar = (await response.json()) as Partial<Car>;
       const normalizedCreatedCar: Car = {
         id: typeof createdCar.id === 'number' ? createdCar.id : Date.now(),
@@ -2576,7 +2686,9 @@ const DLRentApp = () => {
       ]);
     } catch (error) {
       console.error('Could not save car to API:', error);
-      alert('Car was not saved. Check API connection.');
+      alert(
+        error instanceof Error ? error.message : 'Car was not saved. Firebase ruxsatlarini tekshiring.'
+      );
     }
   };
 
@@ -2587,7 +2699,10 @@ const DLRentApp = () => {
         headers: { 'Content-Type': 'application/json' }
       });
 
-      if (!response.ok) throw new Error('Failed to delete car');
+      if (!response.ok) {
+        const message = await getApiErrorMessage(response, 'Failed to delete car');
+        throw new Error(message);
+      }
 
       setCars((prev) => prev.filter((c) => c.id !== carId));
 
@@ -2605,7 +2720,9 @@ const DLRentApp = () => {
       }
     } catch (error) {
       console.error('Could not delete car from API:', error);
-      alert('Car was not deleted. Check API connection.');
+      alert(
+        error instanceof Error ? error.message : 'Car was not deleted. Firebase ruxsatlarini tekshiring.'
+      );
     }
   };
 
