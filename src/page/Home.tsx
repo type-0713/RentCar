@@ -413,7 +413,7 @@ const BrandLogo = ({ size = 'md', className = '' }: BrandLogoProps) => {
 
 // ==================== LOGIN COMPONENT ====================
 
-const Login = ({ onNavigate, onLoginSuccess, onEmailAuth, onSocialAuth }: LoginProps) => {
+const Login = ({ onNavigate, onLoginSuccess, onSocialAuth }: LoginProps) => {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -425,49 +425,22 @@ const Login = ({ onNavigate, onLoginSuccess, onEmailAuth, onSocialAuth }: LoginP
   const socialGridClass =
     socialProvidersCount <= 1 ? 'grid-cols-1' : socialProvidersCount === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-3';
 
-  const isAdminCredentialBypass =
-    email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD;
-  const isPasswordTooShort = password.length > 0 && password.length < 8 && !isAdminCredentialBypass;
-
-  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
+  const handleLogin = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Admin credentials (also requires Firebase auth so Firestore writes are authorized)
+    // Admin credentials
     if (email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      const adminAuth = await onEmailAuth(email, password);
-      if (!adminAuth.ok) {
-        setError(adminAuth.message ?? 'Admin Firebase auth failed.');
-        setIsLoading(false);
-        return;
-      }
       onLoginSuccess(email, 'admin');
       onNavigate('admin');
       setIsLoading(false);
       return;
     }
 
-    if (email.trim().toLowerCase() === ADMIN_EMAIL && password !== ADMIN_PASSWORD) {
-      setError(t('login.adminPassWrong'));
-      setIsLoading(false);
-      return;
-    }
-
-    if (isPasswordTooShort) {
-      setError(t('login.passwordShort'));
-      setIsLoading(false);
-      return;
-    }
-
-    // Firebase email/password auth
-    const result = await onEmailAuth(email, password);
-    if (result.ok) {
-      onLoginSuccess(email, 'user');
-      onNavigate('home');
-    } else {
-      setError(result.message ?? t('login.authFailed'));
-    }
+    const loginName = email.trim() || password.trim() || 'guest';
+    onLoginSuccess(loginName, 'user');
+    onNavigate('home');
     setIsLoading(false);
   };
 
@@ -512,10 +485,9 @@ const Login = ({ onNavigate, onLoginSuccess, onEmailAuth, onSocialAuth }: LoginP
               <label className="block text-sm font-medium text-slate-200 mb-2">{t('login.email')}</label>
               <div className="relative">
                 <input
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
                   placeholder="Enter your email"
                   className="w-full px-5 py-3.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-400/30 focus:bg-white/15 transition backdrop-blur-sm"
                 />
@@ -530,12 +502,8 @@ const Login = ({ onNavigate, onLoginSuccess, onEmailAuth, onSocialAuth }: LoginP
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required
                   placeholder="********"
-                  className={`w-full px-5 py-3.5 bg-white/10 border rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white/15 transition backdrop-blur-sm ${isPasswordTooShort
-                    ? 'border-red-500 focus:border-red-400 focus:ring-red-400/30'
-                    : 'border-white/20 focus:border-teal-400 focus:ring-teal-400/30'
-                    }`}
+                  className="w-full px-5 py-3.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-400/30 focus:bg-white/15 transition backdrop-blur-sm"
                 />
                 <button
                   type="button"
@@ -545,9 +513,6 @@ const Login = ({ onNavigate, onLoginSuccess, onEmailAuth, onSocialAuth }: LoginP
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {isPasswordTooShort && (
-                <p className="mt-2 text-xs text-red-300">{t('login.passwordShort')}</p>
-              )}
             </div>
 
             <button
