@@ -2251,15 +2251,31 @@ const DLRentApp = () => {
           typeof (signInError as { code?: unknown }).code === 'string'
           ? (signInError as { code: string }).code
           : '';
-      // If user doesn't exist, create new user
-      if (authCode === 'auth/user-not-found') {
+      // Firebase may return `invalid-credential` for both missing users and wrong password.
+      // We attempt create; if email exists, we map back to incorrect-password UX.
+      if (authCode === 'auth/user-not-found' || authCode === 'auth/invalid-credential') {
         try {
           await createUserWithEmailAndPassword(auth, trimmedEmail, password);
           return { ok: true };
-        } catch (createError) {
+        } catch (createError: unknown) {
+          const createCode =
+            typeof createError === 'object' &&
+              createError !== null &&
+              'code' in createError &&
+              typeof (createError as { code?: unknown }).code === 'string'
+              ? (createError as { code: string }).code
+              : '';
+
+          if (createCode === 'auth/email-already-in-use') {
+            return { ok: false, message: 'Incorrect password.' };
+          }
+
           console.error('Create user failed:', createError);
           return { ok: false, message: 'Registration failed. Try again.' };
         }
+      }
+      if (authCode === 'auth/operation-not-allowed') {
+        return { ok: false, message: 'Email/password login is disabled in Firebase Auth.' };
       }
       if (authCode === 'auth/wrong-password') {
         return { ok: false, message: 'Incorrect password.' };
