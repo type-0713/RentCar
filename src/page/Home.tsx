@@ -25,6 +25,9 @@ const THEME_STORAGE_KEY = 'dlrent_theme';
 const ADMIN_EMAIL = 'admin987@gmail.com';
 const ADMIN_PASSWORD = '654987';
 const API_URL = 'firebase://local';
+const ENABLE_GOOGLE_AUTH = import.meta.env.VITE_ENABLE_GOOGLE_AUTH !== 'false';
+const ENABLE_APPLE_AUTH = import.meta.env.VITE_ENABLE_APPLE_AUTH === 'true';
+const ENABLE_MICROSOFT_AUTH = import.meta.env.VITE_ENABLE_MICROSOFT_AUTH === 'true';
 const MIN_CAR_IMAGES = 5;
 const MAX_CAR_IMAGES = 10;
 const MAX_IMAGE_SIZE_MB = 4;
@@ -375,6 +378,10 @@ const Login = ({ onNavigate, onLoginSuccess, onEmailAuth, onSocialAuth }: LoginP
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const socialProvidersCount =
+    Number(ENABLE_GOOGLE_AUTH) + Number(ENABLE_APPLE_AUTH) + Number(ENABLE_MICROSOFT_AUTH);
+  const socialGridClass =
+    socialProvidersCount <= 1 ? 'grid-cols-1' : socialProvidersCount === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-3';
 
   const isAdminCredentialBypass =
     email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD;
@@ -520,49 +527,57 @@ const Login = ({ onNavigate, onLoginSuccess, onEmailAuth, onSocialAuth }: LoginP
             <div className="h-px flex-1 bg-white/15"></div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <button
-              type="button"
-              onClick={() => handleSocialClick('google')}
-              disabled={isLoading}
-              className="w-full border border-white/30 hover:border-white/50 text-white font-semibold py-3.5 rounded-xl transition hover:bg-white/10 disabled:opacity-60 flex items-center justify-center gap-3"
-            >
-              <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
-                <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.2.8 3.9 1.4l2.7-2.6C16.9 3.2 14.7 2.2 12 2.2 6.6 2.2 2.2 6.6 2.2 12S6.6 21.8 12 21.8c6.9 0 9.6-4.8 9.6-7.3 0-.5-.1-.9-.1-1.3H12z" />
-                <path fill="#34A853" d="M3.3 7.4l3.2 2.3C7.3 7.8 9.5 6 12 6c1.9 0 3.2.8 3.9 1.4l2.7-2.6C16.9 3.2 14.7 2.2 12 2.2 8.2 2.2 4.9 4.3 3.3 7.4z" />
-                <path fill="#FBBC05" d="M12 21.8c2.6 0 4.8-.8 6.4-2.2l-3-2.4c-.8.6-1.9 1-3.4 1-3.9 0-5.2-2.6-5.5-3.9l-3.2 2.5c1.6 3.1 4.9 5 8.7 5z" />
-                <path fill="#4285F4" d="M21.6 14.5c.1-.4.1-.8.1-1.3 0-.4 0-.9-.1-1.3H12v2.6h5.5c-.3 1.5-1.2 2.7-2.4 3.5l3 2.4c1.7-1.6 3.5-4.5 3.5-8z" />
-              </svg>
-              <span>{t('login.google')}</span>
-            </button>
+          {socialProvidersCount > 0 && (
+            <div className={`grid ${socialGridClass} gap-3`}>
+              {ENABLE_GOOGLE_AUTH && (
+                <button
+                  type="button"
+                  onClick={() => handleSocialClick('google')}
+                  disabled={isLoading}
+                  className="w-full border border-white/30 hover:border-white/50 text-white font-semibold py-3.5 rounded-xl transition hover:bg-white/10 disabled:opacity-60 flex items-center justify-center gap-3"
+                >
+                  <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
+                    <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.2.8 3.9 1.4l2.7-2.6C16.9 3.2 14.7 2.2 12 2.2 6.6 2.2 2.2 6.6 2.2 12S6.6 21.8 12 21.8c6.9 0 9.6-4.8 9.6-7.3 0-.5-.1-.9-.1-1.3H12z" />
+                    <path fill="#34A853" d="M3.3 7.4l3.2 2.3C7.3 7.8 9.5 6 12 6c1.9 0 3.2.8 3.9 1.4l2.7-2.6C16.9 3.2 14.7 2.2 12 2.2 8.2 2.2 4.9 4.3 3.3 7.4z" />
+                    <path fill="#FBBC05" d="M12 21.8c2.6 0 4.8-.8 6.4-2.2l-3-2.4c-.8.6-1.9 1-3.4 1-3.9 0-5.2-2.6-5.5-3.9l-3.2 2.5c1.6 3.1 4.9 5 8.7 5z" />
+                    <path fill="#4285F4" d="M21.6 14.5c.1-.4.1-.8.1-1.3 0-.4 0-.9-.1-1.3H12v2.6h5.5c-.3 1.5-1.2 2.7-2.4 3.5l3 2.4c1.7-1.6 3.5-4.5 3.5-8z" />
+                  </svg>
+                  <span>{t('login.google')}</span>
+                </button>
+              )}
 
-            <button
-              type="button"
-              onClick={() => handleSocialClick('apple')}
-              disabled={isLoading}
-              className="w-full border border-white/30 hover:border-white/50 text-white font-semibold py-3.5 rounded-xl transition hover:bg-white/10 disabled:opacity-60 flex items-center justify-center gap-3"
-            >
-              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
-                <path d="M16.7 12.8c0-2 1.6-3 1.7-3.1-1-.5-2.5-.6-3.5-.2-.9.4-1.6 1.2-2.2 1.2-.6 0-1.5-.8-2.5-.8-1.3 0-2.5.8-3.2 2-.9 1.6-.2 4 1.1 5.8.6.9 1.4 1.9 2.4 1.8 1-.1 1.4-.6 2.6-.6 1.2 0 1.6.6 2.6.6 1.1 0 1.8-.9 2.4-1.8.7-1 1-2 1-2.1-.1 0-2.4-.9-2.4-2.8zM14.6 7.1c.5-.6.9-1.5.8-2.3-.8 0-1.7.5-2.2 1.1-.5.6-.9 1.5-.8 2.3.9.1 1.7-.4 2.2-1.1z" />
-              </svg>
-              <span>{t('login.apple')}</span>
-            </button>
+              {ENABLE_APPLE_AUTH && (
+                <button
+                  type="button"
+                  onClick={() => handleSocialClick('apple')}
+                  disabled={isLoading}
+                  className="w-full border border-white/30 hover:border-white/50 text-white font-semibold py-3.5 rounded-xl transition hover:bg-white/10 disabled:opacity-60 flex items-center justify-center gap-3"
+                >
+                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
+                    <path d="M16.7 12.8c0-2 1.6-3 1.7-3.1-1-.5-2.5-.6-3.5-.2-.9.4-1.6 1.2-2.2 1.2-.6 0-1.5-.8-2.5-.8-1.3 0-2.5.8-3.2 2-.9 1.6-.2 4 1.1 5.8.6.9 1.4 1.9 2.4 1.8 1-.1 1.4-.6 2.6-.6 1.2 0 1.6.6 2.6.6 1.1 0 1.8-.9 2.4-1.8.7-1 1-2 1-2.1-.1 0-2.4-.9-2.4-2.8zM14.6 7.1c.5-.6.9-1.5.8-2.3-.8 0-1.7.5-2.2 1.1-.5.6-.9 1.5-.8 2.3.9.1 1.7-.4 2.2-1.1z" />
+                  </svg>
+                  <span>{t('login.apple')}</span>
+                </button>
+              )}
 
-            <button
-              type="button"
-              onClick={() => handleSocialClick('microsoft')}
-              disabled={isLoading}
-              className="w-full border border-white/30 hover:border-white/50 text-white font-semibold py-3.5 rounded-xl transition hover:bg-white/10 disabled:opacity-60 flex items-center justify-center gap-3"
-            >
-              <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
-                <rect x="2" y="2" width="9" height="9" fill="#f25022" />
-                <rect x="13" y="2" width="9" height="9" fill="#7fba00" />
-                <rect x="2" y="13" width="9" height="9" fill="#00a4ef" />
-                <rect x="13" y="13" width="9" height="9" fill="#ffb900" />
-              </svg>
-              <span>{t('login.microsoft')}</span>
-            </button>
-          </div>
+              {ENABLE_MICROSOFT_AUTH && (
+                <button
+                  type="button"
+                  onClick={() => handleSocialClick('microsoft')}
+                  disabled={isLoading}
+                  className="w-full border border-white/30 hover:border-white/50 text-white font-semibold py-3.5 rounded-xl transition hover:bg-white/10 disabled:opacity-60 flex items-center justify-center gap-3"
+                >
+                  <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
+                    <rect x="2" y="2" width="9" height="9" fill="#f25022" />
+                    <rect x="13" y="2" width="9" height="9" fill="#7fba00" />
+                    <rect x="2" y="13" width="9" height="9" fill="#00a4ef" />
+                    <rect x="13" y="13" width="9" height="9" fill="#ffb900" />
+                  </svg>
+                  <span>{t('login.microsoft')}</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2286,6 +2301,16 @@ const DLRentApp = () => {
   };
 
   const handleSocialAuth = async (provider: SocialProvider) => {
+    if (provider === 'google' && !ENABLE_GOOGLE_AUTH) {
+      return { ok: false, message: 'Google sign-in vaqtincha o‘chirilgan.' };
+    }
+    if (provider === 'apple' && !ENABLE_APPLE_AUTH) {
+      return { ok: false, message: 'Apple sign-in hali sozlanmagan.' };
+    }
+    if (provider === 'microsoft' && !ENABLE_MICROSOFT_AUTH) {
+      return { ok: false, message: 'Microsoft sign-in hali sozlanmagan.' };
+    }
+
     try {
       const firebaseProvider =
         provider === 'apple'
@@ -2313,6 +2338,14 @@ const DLRentApp = () => {
           ? (error as { code: string }).code
           : '';
 
+      if (fallbackError === 'auth/unauthorized-domain') {
+        const host = typeof window !== 'undefined' ? window.location.hostname : 'your-domain.vercel.app';
+        return {
+          ok: false,
+          message: `Firebase domain ruxsati yo'q: ${host}. Firebase Console -> Authentication -> Settings -> Authorized domains ga shu domainni qo'shing.`
+        };
+      }
+
       if (
         fallbackError === 'auth/popup-blocked' ||
         fallbackError === 'auth/popup-closed-by-user' ||
@@ -2327,6 +2360,10 @@ const DLRentApp = () => {
         } catch (redirectError) {
           console.error(`${provider} redirect auth failed:`, redirectError);
         }
+      }
+
+      if (fallbackError === 'auth/operation-not-allowed') {
+        return { ok: false, message: `${provider} sign-in Firebase Auth'da yoqilmagan.` };
       }
 
       return { ok: false, message: `${provider} sign-in failed. Please try again.` };
