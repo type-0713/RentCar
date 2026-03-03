@@ -887,7 +887,10 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
                   )}
                 </div>
               ) : (
-                <div className="text-7xl sm:text-9xl mb-8">{car.image}</div>
+                <div className="h-72 rounded-2xl border border-white/20 mb-8 flex flex-col items-center justify-center gap-3 text-slate-300">
+                  <CarIcon className="w-16 h-16 text-slate-400" />
+                  <p className="text-sm">Image URL not found</p>
+                </div>
               )}
               <h1 className="text-3xl font-bold text-white flex items-center justify-center gap-2">
                 <CarIcon className="w-7 h-7 text-teal-300" />
@@ -1331,6 +1334,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
   const [isReplySending, setIsReplySending] = useState(false);
   const [isSavingCar, setIsSavingCar] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState('');
 
   const carEmojis = ['CAR', 'SUV', 'SPORT', 'RACE', 'VAN', 'PICKUP', 'EV', 'LUX'];
   const incomingMessages = messages.filter((m) => m.sender === 'user').slice().reverse();
@@ -1416,6 +1420,35 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
     });
   };
 
+  const handleAddImageByUrl = () => {
+    const raw = imageUrlInput.trim();
+    if (!raw) return;
+    let parsed: URL;
+    try {
+      parsed = new URL(raw);
+    } catch {
+      alert('Please enter a valid image URL.');
+      return;
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      alert('Only http/https image URLs are allowed.');
+      return;
+    }
+
+    setNewCar((prev) => {
+      if (prev.imageGallery.length >= MAX_CAR_IMAGES) {
+        alert(`You can upload up to ${MAX_CAR_IMAGES} images.`);
+        return prev;
+      }
+      if (prev.imageGallery.includes(raw)) {
+        alert('This image URL is already added.');
+        return prev;
+      }
+      return { ...prev, imageGallery: [...prev.imageGallery, raw] };
+    });
+    setImageUrlInput('');
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isSavingCar || isUploadingImages) return;
@@ -1455,6 +1488,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
         rating: 4.8,
         quantity: 1
       });
+      setImageUrlInput('');
       setShowForm(false);
     } finally {
       setIsSavingCar(false);
@@ -1551,6 +1585,28 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-200 mb-2">Car Images</label>
+                  <div className="mb-3 flex gap-2">
+                    <input
+                      type="url"
+                      value={imageUrlInput}
+                      onChange={(e) => setImageUrlInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddImageByUrl();
+                        }
+                      }}
+                      placeholder="https://example.com/car-image.jpg"
+                      className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-teal-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddImageByUrl}
+                      className="px-4 py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-xl transition"
+                    >
+                      Add URL
+                    </button>
+                  </div>
                   <input
                     type="file"
                     accept="image/*"
@@ -1624,7 +1680,9 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
                   {car.imageGallery?.[0] ? (
                     <img src={car.imageGallery[0]} alt={car.name} className="w-20 h-20 object-cover rounded-xl border border-white/20" />
                   ) : (
-                    <div className="text-5xl">{car.image}</div>
+                    <div className="w-20 h-20 rounded-xl border border-white/20 flex items-center justify-center bg-white/5">
+                      <CarIcon className="w-10 h-10 text-slate-400" />
+                    </div>
                   )}
                   <button onClick={() => handleDeleteCarClick(car)} className="p-2 bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-lg transition" title="Delete car" aria-label={`Delete ${car.name}`}>
                     <Trash2 className="w-5 h-5" />
