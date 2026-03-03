@@ -23,9 +23,9 @@ const AUTH_STORAGE_KEY = 'dlrent_auth';
 const AUTH_CHANGE_EVENT = 'dlrent-auth-change';
 const THEME_STORAGE_KEY = 'dlrent_theme';
 const ADMIN_EMAIL = 'admin987@gmail.com';
-const ADMIN_PASSWORD = '654987';
-const BACKEND_MODE = 'server';
-const API_URL = 'http://localhost:3001';
+const BACKEND_MODE: 'server' | 'firebase' =
+  import.meta.env.VITE_BACKEND_MODE === 'server' ? 'server' : 'firebase';
+const API_URL = import.meta.env.VITE_API_URL ?? '';
 const ENABLE_GOOGLE_AUTH = import.meta.env.VITE_ENABLE_GOOGLE_AUTH !== 'false';
 const ENABLE_APPLE_AUTH = import.meta.env.VITE_ENABLE_APPLE_AUTH !== 'false';
 const ENABLE_MICROSOFT_AUTH = import.meta.env.VITE_ENABLE_MICROSOFT_AUTH !== 'false';
@@ -413,7 +413,7 @@ const BrandLogo = ({ size = 'md', className = '' }: BrandLogoProps) => {
 
 // ==================== LOGIN COMPONENT ====================
 
-const Login = ({ onNavigate, onLoginSuccess, onSocialAuth }: LoginProps) => {
+const Login = ({ onNavigate, onLoginSuccess, onEmailAuth, onSocialAuth }: LoginProps) => {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -425,22 +425,22 @@ const Login = ({ onNavigate, onLoginSuccess, onSocialAuth }: LoginProps) => {
   const socialGridClass =
     socialProvidersCount <= 1 ? 'grid-cols-1' : socialProvidersCount === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-3';
 
-  const handleLogin = (e: FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Admin credentials
-    if (email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      onLoginSuccess(email, 'admin');
-      onNavigate('admin');
+    const trimmedEmail = email.trim();
+    const result = await onEmailAuth(trimmedEmail, password);
+    if (!result.ok) {
+      setError(result.message ?? t('login.authFailed'));
       setIsLoading(false);
       return;
     }
 
-    const loginName = email.trim() || password.trim() || 'guest';
-    onLoginSuccess(loginName, 'user');
-    onNavigate('home');
+    const role: Exclude<UserRole, ''> = trimmedEmail.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'user';
+    onLoginSuccess(trimmedEmail, role);
+    onNavigate(role === 'admin' ? 'admin' : 'home');
     setIsLoading(false);
   };
 
@@ -2125,17 +2125,18 @@ const DLRentApp = () => {
       if (!firebaseUser) return;
       const email = firebaseUser.email ?? firebaseUser.displayName ?? '';
       if (!email) return;
+      const role: Exclude<UserRole, ''> = email.trim().toLowerCase() === ADMIN_EMAIL ? 'admin' : 'user';
       setUserName(email);
-      setUserRole('user');
+      setUserRole(role);
       localStorage.setItem(
         AUTH_STORAGE_KEY,
         JSON.stringify({
           userName: email,
-          userRole: 'user'
+          userRole: role
         } satisfies StoredAuth)
       );
       window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
-      setCurrentPage((prev) => (prev === 'login' ? 'home' : prev));
+      setCurrentPage((prev) => (prev === 'login' ? (role === 'admin' ? 'admin' : 'home') : prev));
     });
 
     return () => unsubscribe();
