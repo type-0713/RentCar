@@ -28,8 +28,8 @@ const ENABLE_GOOGLE_AUTH = import.meta.env.VITE_ENABLE_GOOGLE_AUTH !== 'false';
 const ENABLE_APPLE_AUTH = import.meta.env.VITE_ENABLE_APPLE_AUTH !== 'false';
 const ENABLE_MICROSOFT_AUTH = import.meta.env.VITE_ENABLE_MICROSOFT_AUTH !== 'false';
 const MIN_CAR_IMAGES = 5;
-const MAX_CAR_IMAGES = 10;
 const BASE_URL_INPUT_COUNT = 5;
+const MAX_CAR_IMAGES = BASE_URL_INPUT_COUNT;
 
 const formatDateInput = (date: Date) => {
   const year = date.getFullYear();
@@ -1377,6 +1377,10 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
       alert(`You can upload up to ${MAX_CAR_IMAGES} images.`);
       return;
     }
+    if (new Set(normalizedImageUrls).size !== normalizedImageUrls.length) {
+      alert('Image URLs must be unique.');
+      return;
+    }
     for (const imageUrl of normalizedImageUrls) {
       try {
         const parsed = new URL(imageUrl);
@@ -1508,20 +1512,24 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-200 mb-2">Car Images</label>
-                  <div className="space-y-2">
+                  <div className="space-y-2.5 rounded-xl border border-white/15 bg-white/5 p-3">
                     {Array.from({ length: BASE_URL_INPUT_COUNT }).map((_, index) => (
-                      <input
-                        key={`image-url-${index}`}
-                        type="url"
-                        value={newCar.imageGallery[index] ?? ''}
-                        onChange={(e) => handleImageUrlChange(index, e.target.value)}
-                        placeholder={`Image URL ${index + 1} (https://...)`}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-teal-400"
-                      />
+                      <div key={`image-url-${index}`} className="flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-lg bg-teal-500/20 border border-teal-500/40 text-teal-300 text-xs font-semibold flex items-center justify-center">
+                          {index + 1}
+                        </span>
+                        <input
+                          type="url"
+                          value={newCar.imageGallery[index] ?? ''}
+                          onChange={(e) => handleImageUrlChange(index, e.target.value)}
+                          placeholder={`https://...`}
+                          className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-teal-400"
+                        />
+                      </div>
                     ))}
                   </div>
                   <p className="mt-2 text-xs text-gray-400">
-                    Min {MIN_CAR_IMAGES}, max {MAX_CAR_IMAGES}. Current: {newCar.imageGallery.filter((img) => img.trim().length > 0).length}
+                    Fill all {BASE_URL_INPUT_COUNT} URL inputs. Current: {newCar.imageGallery.filter((img) => img.trim().length > 0).length}
                   </p>
                   {newCar.imageGallery.filter((img) => img.trim().length > 0).length > 0 && (
                     <div className="mt-3 grid grid-cols-3 gap-2">
