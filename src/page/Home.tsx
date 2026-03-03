@@ -23,9 +23,7 @@ const AUTH_STORAGE_KEY = 'dlrent_auth';
 const AUTH_CHANGE_EVENT = 'dlrent-auth-change';
 const THEME_STORAGE_KEY = 'dlrent_theme';
 const ADMIN_EMAIL = 'admin987@gmail.com';
-const BACKEND_MODE: 'server' | 'firebase' =
-  import.meta.env.VITE_BACKEND_MODE === 'server' ? 'server' : 'firebase';
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+const API_URL = '';
 const ENABLE_GOOGLE_AUTH = import.meta.env.VITE_ENABLE_GOOGLE_AUTH !== 'false';
 const ENABLE_APPLE_AUTH = import.meta.env.VITE_ENABLE_APPLE_AUTH !== 'false';
 const ENABLE_MICROSOFT_AUTH = import.meta.env.VITE_ENABLE_MICROSOFT_AUTH !== 'false';
@@ -219,15 +217,6 @@ const getApiErrorMessage = async (response: ApiJsonResponse, fallback: string) =
 };
 
 const apiFetch = async (url: string, init?: RequestInit): Promise<ApiJsonResponse> => {
-  if (BACKEND_MODE === 'server') {
-    const response = await fetch(url, init);
-    return {
-      ok: response.ok,
-      status: response.status,
-      json: async () => response.json()
-    };
-  }
-
   const method = (init?.method ?? 'GET').toUpperCase();
   const path = parseApiPath(url);
   const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
