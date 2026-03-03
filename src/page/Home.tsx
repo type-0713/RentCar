@@ -11,8 +11,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { collection, deleteDoc, doc, getDoc, getDocs, runTransaction, setDoc } from 'firebase/firestore';
-import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
-import { appleProvider, auth, db, googleProvider, microsoftProvider, storage } from '../firebase';
+import { appleProvider, auth, db, googleProvider, microsoftProvider } from '../firebase';
 import brandLogo from '../assets/image.png';
 
 type Page = 'login' | 'home' | 'carpark' | 'cardetail' | 'about' | 'contacts' | 'admin';
@@ -30,7 +29,7 @@ const ENABLE_APPLE_AUTH = import.meta.env.VITE_ENABLE_APPLE_AUTH !== 'false';
 const ENABLE_MICROSOFT_AUTH = import.meta.env.VITE_ENABLE_MICROSOFT_AUTH !== 'false';
 const MIN_CAR_IMAGES = 5;
 const MAX_CAR_IMAGES = 10;
-const MAX_IMAGE_SIZE_MB = 6;
+const BASE_URL_INPUT_COUNT = 5;
 
 const formatDateInput = (date: Date) => {
   const year = date.getFullYear();
@@ -1323,7 +1322,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
     price: '',
     features: [],
     image: 'CAR',
-    imageGallery: [],
+    imageGallery: Array(BASE_URL_INPUT_COUNT).fill(''),
     rating: 4.8,
     quantity: 1
   });
@@ -1333,8 +1332,6 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
   const [replyMessage, setReplyMessage] = useState('');
   const [isReplySending, setIsReplySending] = useState(false);
   const [isSavingCar, setIsSavingCar] = useState(false);
-  const [isUploadingImages, setIsUploadingImages] = useState(false);
-  const [imageUrlInput, setImageUrlInput] = useState('');
 
   const carEmojis = ['CAR', 'SUV', 'SPORT', 'RACE', 'VAN', 'PICKUP', 'EV', 'LUX'];
   const incomingMessages = messages.filter((m) => m.sender === 'user').slice().reverse();
@@ -1354,115 +1351,42 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
     setNewCar((prev) => ({ ...prev, features: prev.features.filter((_, i) => i !== index) }));
   };
 
-  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (files.length === 0) return;
-    if (isUploadingImages) return;
-
-    const remainingSlots = MAX_CAR_IMAGES - newCar.imageGallery.length;
-    if (remainingSlots <= 0) {
-      alert(`You can upload up to ${MAX_CAR_IMAGES} images.`);
-      e.target.value = '';
-      return;
-    }
-
-    const filesToUpload = files.slice(0, remainingSlots);
-    if (files.length > filesToUpload.length) {
-      alert(`Only ${filesToUpload.length} image(s) were selected. Max ${MAX_CAR_IMAGES} images allowed.`);
-    }
-
-    for (const file of filesToUpload) {
-      if (!file.type.startsWith('image/')) {
-        alert('Please upload valid image files only.');
-        return;
-      }
-      if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-        alert(`Each image must be up to ${MAX_IMAGE_SIZE_MB}MB.`);
-        return;
-      }
-    }
-
-    setIsUploadingImages(true);
-    try {
-      const now = Date.now();
-      const uploadedUrls = await Promise.all(
-        filesToUpload.map(async (file, index) => {
-          const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-          const imageRef = storageRef(storage, `car-images/${now}-${index}-${safeFileName}`);
-          await uploadBytes(imageRef, file, { contentType: file.type });
-          return getDownloadURL(imageRef);
-        })
-      );
-
-      setNewCar((prev) => {
-        const merged = [...prev.imageGallery, ...uploadedUrls].slice(0, MAX_CAR_IMAGES);
-        return {
-          ...prev,
-          imageGallery: merged
-        };
-      });
-    } catch (error) {
-      console.error(error);
-      alert('Could not upload images to Firebase Storage.');
-    } finally {
-      setIsUploadingImages(false);
-      e.target.value = '';
-    }
-  };
-
-  const handleRemoveUploadedImage = (index: number) => {
+  const handleImageUrlChange = (index: number, value: string) => {
     setNewCar((prev) => {
-      const nextGallery = prev.imageGallery.filter((_, i) => i !== index);
-      return {
-        ...prev,
-        imageGallery: nextGallery
-      };
+      const next = [...prev.imageGallery];
+      next[index] = value;
+      return { ...prev, imageGallery: next };
     });
-  };
-
-  const handleAddImageByUrl = () => {
-    const raw = imageUrlInput.trim();
-    if (!raw) return;
-    let parsed: URL;
-    try {
-      parsed = new URL(raw);
-    } catch {
-      alert('Please enter a valid image URL.');
-      return;
-    }
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      alert('Only http/https image URLs are allowed.');
-      return;
-    }
-
-    setNewCar((prev) => {
-      if (prev.imageGallery.length >= MAX_CAR_IMAGES) {
-        alert(`You can upload up to ${MAX_CAR_IMAGES} images.`);
-        return prev;
-      }
-      if (prev.imageGallery.includes(raw)) {
-        alert('This image URL is already added.');
-        return prev;
-      }
-      return { ...prev, imageGallery: [...prev.imageGallery, raw] };
-    });
-    setImageUrlInput('');
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isSavingCar || isUploadingImages) return;
+    if (isSavingCar) return;
     if (!newCar.name.trim() || !newCar.price.trim()) {
       alert('Please enter car name and price.');
       return;
     }
-    if (newCar.imageGallery.length < MIN_CAR_IMAGES) {
+    const normalizedImageUrls = newCar.imageGallery
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+    if (normalizedImageUrls.length < MIN_CAR_IMAGES) {
       alert(`Please upload at least ${MIN_CAR_IMAGES} images.`);
       return;
     }
-    if (newCar.imageGallery.length > MAX_CAR_IMAGES) {
+    if (normalizedImageUrls.length > MAX_CAR_IMAGES) {
       alert(`You can upload up to ${MAX_CAR_IMAGES} images.`);
       return;
+    }
+    for (const imageUrl of normalizedImageUrls) {
+      try {
+        const parsed = new URL(imageUrl);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          throw new Error('protocol');
+        }
+      } catch {
+        alert('Each image must be a valid http/https URL.');
+        return;
+      }
     }
 
     setIsSavingCar(true);
@@ -1472,7 +1396,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
         name: newCar.name.trim(),
         price: newCar.price.trim(),
         quantity: Math.max(1, Math.floor(Number(newCar.quantity) || 1)),
-        imageGallery: newCar.imageGallery.slice(0, MAX_CAR_IMAGES)
+        imageGallery: normalizedImageUrls.slice(0, MAX_CAR_IMAGES)
       });
 
       if (!saved) {
@@ -1484,11 +1408,10 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
         price: '',
         features: [],
         image: 'CAR',
-        imageGallery: [],
+        imageGallery: Array(BASE_URL_INPUT_COUNT).fill(''),
         rating: 4.8,
         quantity: 1
       });
-      setImageUrlInput('');
       setShowForm(false);
     } finally {
       setIsSavingCar(false);
@@ -1585,52 +1508,28 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-200 mb-2">Car Images</label>
-                  <div className="mb-3 flex gap-2">
-                    <input
-                      type="url"
-                      value={imageUrlInput}
-                      onChange={(e) => setImageUrlInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddImageByUrl();
-                        }
-                      }}
-                      placeholder="https://example.com/car-image.jpg"
-                      className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-teal-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddImageByUrl}
-                      className="px-4 py-3 bg-teal-500 hover:bg-teal-600 text-white rounded-xl transition"
-                    >
-                      Add URL
-                    </button>
+                  <div className="space-y-2">
+                    {Array.from({ length: BASE_URL_INPUT_COUNT }).map((_, index) => (
+                      <input
+                        key={`image-url-${index}`}
+                        type="url"
+                        value={newCar.imageGallery[index] ?? ''}
+                        onChange={(e) => handleImageUrlChange(index, e.target.value)}
+                        placeholder={`Image URL ${index + 1} (https://...)`}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-teal-400"
+                      />
+                    ))}
                   </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    disabled={isUploadingImages}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-teal-500 file:text-white hover:file:bg-teal-600"
-                  />
                   <p className="mt-2 text-xs text-gray-400">
-                    Min {MIN_CAR_IMAGES}, max {MAX_CAR_IMAGES}. Current: {newCar.imageGallery.length}
+                    Min {MIN_CAR_IMAGES}, max {MAX_CAR_IMAGES}. Current: {newCar.imageGallery.filter((img) => img.trim().length > 0).length}
                   </p>
-                  {newCar.imageGallery.length > 0 && (
+                  {newCar.imageGallery.filter((img) => img.trim().length > 0).length > 0 && (
                     <div className="mt-3 grid grid-cols-3 gap-2">
-                      {newCar.imageGallery.map((image, index) => (
+                      {newCar.imageGallery
+                        .filter((img) => img.trim().length > 0)
+                        .map((image, index) => (
                         <div key={`${index}-${image.slice(0, 16)}`} className="relative">
                           <img src={image} alt={`Car preview ${index + 1}`} className="w-full h-20 object-cover rounded-lg border border-white/20" />
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveUploadedImage(index)}
-                            className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500/90 text-white text-xs hover:bg-red-600 transition"
-                            aria-label={`Remove image ${index + 1}`}
-                          >
-                            x
-                          </button>
                         </div>
                       ))}
                     </div>
@@ -1659,8 +1558,8 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
               </div>
 
               <div className="flex gap-4 pt-6">
-                <button type="submit" disabled={isSavingCar || isUploadingImages} className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white font-bold rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed">
-                  {isUploadingImages ? 'Uploading images...' : isSavingCar ? 'Saving...' : 'Add Car to Fleet'}
+                <button type="submit" disabled={isSavingCar} className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white font-bold rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed">
+                  {isSavingCar ? 'Saving...' : 'Add Car to Fleet'}
                 </button>
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 border border-white/20 text-white font-bold rounded-xl hover:bg-white/5 transition">Cancel</button>
               </div>
