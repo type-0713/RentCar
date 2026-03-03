@@ -207,6 +207,9 @@ const createNumericId = () => Date.now() + Math.floor(Math.random() * 100000);
 const getApiErrorMessage = async (response: ApiJsonResponse, fallback: string) => {
   try {
     const data = (await response.json()) as Partial<ApiErrorPayload>;
+    if (typeof data.code === 'string' && data.code.includes('permission-denied')) {
+      return 'Firebase ruxsati yoqilgan emas. Firestore Rules va login holatini tekshiring.';
+    }
     if (typeof data.message === 'string' && data.message.trim()) {
       return data.message;
     }
@@ -1981,6 +1984,7 @@ const DLRentApp = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const autoReturnInProgressRef = useRef(false);
+  const [authRefreshToken, setAuthRefreshToken] = useState(0);
 
   // ==================== THEME EFFECT ====================
   useEffect(() => {
@@ -2047,12 +2051,12 @@ const DLRentApp = () => {
             )
         );
       } catch (error) {
-        console.error('Could not load bookings/messages from API:', error);
+        console.error('Could not load bookings/messages from Firestore:', error);
       }
     };
 
     void loadChatData();
-  }, []);
+  }, [authRefreshToken]);
 
   // ==================== AUTH SYNC ====================
   useEffect(() => {
@@ -2111,9 +2115,15 @@ const DLRentApp = () => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (!firebaseUser) return;
+      if (!firebaseUser) {
+        setAuthRefreshToken((prev) => prev + 1);
+        return;
+      }
       const email = firebaseUser.email ?? firebaseUser.displayName ?? '';
-      if (!email) return;
+      if (!email) {
+        setAuthRefreshToken((prev) => prev + 1);
+        return;
+      }
       const role: Exclude<UserRole, ''> = email.trim().toLowerCase() === ADMIN_EMAIL ? 'admin' : 'user';
       setUserName(email);
       setUserRole(role);
@@ -2126,6 +2136,7 @@ const DLRentApp = () => {
       );
       window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
       setCurrentPage((prev) => (prev === 'login' ? (role === 'admin' ? 'admin' : 'home') : prev));
+      setAuthRefreshToken((prev) => prev + 1);
     });
 
     return () => unsubscribe();
@@ -2166,12 +2177,12 @@ const DLRentApp = () => {
           }))
         );
       } catch (error) {
-        console.error('Could not load cars from API:', error);
+        console.error('Could not load cars from Firestore:', error);
       }
     };
 
     void loadCars();
-  }, []);
+  }, [authRefreshToken]);
 
   // ==================== AUTO COMPLETE EXPIRED BOOKINGS ====================
   useEffect(() => {
@@ -2216,7 +2227,7 @@ const DLRentApp = () => {
           prev && completedBookingIds.has(prev.id) ? { ...prev, status: 'completed' } : prev
         );
 
-        // Server restores car quantities during booking completion.
+        // Transaction restores car quantities during booking completion.
         // We only resync local cars to avoid double increments.
         try {
           const carsResponse = await apiFetch(`${API_URL}/cars`);
@@ -2421,6 +2432,11 @@ const DLRentApp = () => {
   };
 
   const handleBookCar = async (booking: BookingInput) => {
+    if (!auth.currentUser) {
+      alert('Avval login qiling, keyin bron qilish mumkin.');
+      setCurrentPage('login');
+      return false;
+    }
     const targetCar = cars.find((car) => car.id === booking.carId);
     if (!targetCar || targetCar.quantity <= 0) {
       alert('This car is not available right now.');
@@ -2487,6 +2503,11 @@ const DLRentApp = () => {
   };
 
   const handleSendMessage = async (bookingId: number, messageText: string, sender: MessageSender = 'user') => {
+    if (!auth.currentUser) {
+      alert('Xabar yuborish uchun login qiling.');
+      setCurrentPage('login');
+      return false;
+    }
     if (!messageText.trim()) return false;
     const targetBooking = bookings.find((booking) => booking.id === bookingId);
     if (!targetBooking) return false;
@@ -2525,6 +2546,7 @@ const DLRentApp = () => {
   };
 
   const handleMarkOneUnreadAsRead = async (bookingId: number) => {
+    if (!auth.currentUser) return;
     const targetMessage = messages.find(
       (message) => message.bookingId === bookingId && message.sender === 'user' && !message.read
     );
@@ -2557,6 +2579,11 @@ const DLRentApp = () => {
   };
 
   const handleAddCar = async (newCar: NewCarInput) => {
+    if (!auth.currentUser) {
+      alert('Avval login qiling.');
+      setCurrentPage('login');
+      return;
+    }
     const normalizedName = newCar.name.trim().toLowerCase();
     const existingCar = cars.find((car) => car.name.trim().toLowerCase() === normalizedName);
 
@@ -2648,6 +2675,11 @@ const DLRentApp = () => {
   };
 
   const handleDeleteCar = async (carId: number) => {
+    if (!auth.currentUser) {
+      alert('Avval login qiling.');
+      setCurrentPage('login');
+      return;
+    }
     try {
       const response = await apiFetch(`${API_URL}/cars/${carId}`, {
         method: 'DELETE',
