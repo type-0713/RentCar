@@ -661,7 +661,7 @@ const ChatModal = ({ booking, onClose, onSendMessage, messages }: ChatModalProps
         <div className="border-b border-white/10 p-5 flex items-center justify-between bg-white/5 rounded-t-2xl">
           <div>
             <h2 className="text-xl font-bold text-white">{booking.carName}</h2>
-            <p className="text-sm text-gray-400">Booking #{booking.id} • Chat with admin</p>
+            <p className="text-sm text-gray-400">Booking #{booking.id} | Chat with admin</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition p-1 rounded-lg hover:bg-white/10">
             <X className="w-6 h-6" />
@@ -754,8 +754,8 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
 
   if (!car) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 pt-32 pb-20 animate-pageEnter">
-        <div className="max-w-4xl mx-auto px-6 text-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 pt-28 sm:pt-32 pb-16 sm:pb-20 animate-pageEnter">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <AlertCircle className="w-14 h-14 mx-auto text-yellow-400 mb-4" />
           <h1 className="text-3xl font-bold text-white mb-2">{t('detail.noAvailableCar')}</h1>
           <p className="text-gray-400 mb-8">{t('detail.chooseAvailable')}</p>
@@ -844,8 +844,8 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 pt-32 pb-20 animate-pageEnter">
-      <div className="max-w-7xl mx-auto px-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 pt-28 sm:pt-32 pb-16 sm:pb-20 animate-pageEnter">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <button
           onClick={() => onNavigate('carpark')}
           className="mb-8 text-teal-400 hover:text-teal-300 font-semibold flex items-center gap-2 transition"
@@ -855,7 +855,7 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div>
-            <div className="relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-12 text-center mb-8">
+            <div className="relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-6 sm:p-12 text-center mb-8">
               <div className="absolute inset-0 bg-gradient-to-br from-teal-500/10 to-blue-500/10 rounded-3xl"></div>
               {primaryImage ? (
                 <div className="relative z-10 mb-8">
@@ -888,7 +888,7 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
                   )}
                 </div>
               ) : (
-                <div className="text-9xl mb-8">{car.image}</div>
+                <div className="text-7xl sm:text-9xl mb-8">{car.image}</div>
               )}
               <h1 className="text-3xl font-bold text-white flex items-center justify-center gap-2">
                 <CarIcon className="w-7 h-7 text-teal-300" />
@@ -922,7 +922,7 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {carInfoCards.map((spec, idx) => (
                 <div key={idx} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
                   <div className="mb-2">{spec.icon}</div>
@@ -955,10 +955,10 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
           </div>
 
           <div>
-            <div className="sticky top-32 bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-xl border border-white/30 rounded-3xl p-8">
+            <div className="sticky top-28 sm:top-32 bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-xl border border-white/30 rounded-3xl p-5 sm:p-8">
               <div className="mb-8">
                 <p className="text-gray-400 text-sm mb-2">{t('detail.startingFrom')}</p>
-                <p className="text-5xl font-bold bg-gradient-to-r from-teal-400 to-blue-400 bg-clip-text text-transparent">
+                <p className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-teal-400 to-blue-400 bg-clip-text text-transparent">
                   {car.price}
                 </p>
                 <p className="text-gray-400 text-sm">{t('detail.perDayIncluded')}</p>
@@ -978,7 +978,7 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm text-gray-300 font-medium block mb-2">Pick-up Date</label>
                     <input type="date" min={todayDate} value={pickupDate} onChange={(e) => handlePickupDateChange(e.target.value)} placeholder="Select pick-up date" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:border-teal-400 focus:outline-none transition backdrop-blur-sm" />
@@ -998,7 +998,7 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm text-gray-300 font-medium block mb-2">Return Date</label>
                     <input type="date" min={minReturnDate} value={returnDate} onChange={(e) => handleReturnDateChange(e.target.value)} placeholder="Select return date" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:border-teal-400 focus:outline-none transition backdrop-blur-sm" />
@@ -1257,10 +1257,10 @@ const Navigation = ({ currentPage, onNavigate, userName, userRole, onLogout, the
 const About = () => {
   const { t } = useTranslation();
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 pt-32 pb-20 animate-pageEnter">
-      <div className="max-w-5xl mx-auto px-6">
-        <h1 className="text-5xl font-bold text-white mb-6">{t('about.title')}</h1>
-        <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-2xl p-8 space-y-5 text-gray-300 leading-relaxed">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 pt-28 sm:pt-32 pb-16 sm:pb-20 animate-pageEnter">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
+        <h1 className="text-3xl sm:text-5xl font-bold text-white mb-6">{t('about.title')}</h1>
+        <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-2xl p-5 sm:p-8 space-y-5 text-gray-300 leading-relaxed">
           <p>
             Our platform was built to simplify the full car rental workflow for both customers and administrators.
           </p>
@@ -1291,10 +1291,10 @@ const Contacts = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 pt-32 pb-20 animate-pageEnter">
-      <div className="max-w-7xl mx-auto px-6">
-        <h1 className="text-5xl font-bold text-white mb-4 text-center">{t('contacts.title')}</h1>
-        <p className="text-gray-400 text-lg text-center mb-16">{t('contacts.subtitle')}</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 pt-28 sm:pt-32 pb-16 sm:pb-20 animate-pageEnter">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <h1 className="text-3xl sm:text-5xl font-bold text-white mb-4 text-center">{t('contacts.title')}</h1>
+        <p className="text-gray-400 text-base sm:text-lg text-center mb-10 sm:mb-16">{t('contacts.subtitle')}</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {offices.map((office, idx) => (
@@ -1320,7 +1320,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
     name: '',
     price: '',
     features: [],
-    image: '🚗',
+    image: 'CAR',
     imageBase64: '',
     imageGallery: [],
     rating: 4.8,
@@ -1332,7 +1332,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
   const [replyMessage, setReplyMessage] = useState('');
   const [isReplySending, setIsReplySending] = useState(false);
 
-  const carEmojis = ['🚗', '🚙', '🚘', '🏎️', '🚖', '🚕', '🚓', '🚔'];
+  const carEmojis = ['CAR', 'SUV', 'SPORT', 'RACE', 'VAN', 'PICKUP', 'EV', 'LUX'];
   const incomingMessages = messages.filter((m) => m.sender === 'user').slice().reverse();
 
   const handleAddFeature = () => {
@@ -1428,7 +1428,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
       name: '',
       price: '',
       features: [],
-      image: '🚗',
+      image: 'CAR',
       imageBase64: '',
       imageGallery: [],
       rating: 4.8,
@@ -1460,11 +1460,11 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 pt-32 pb-20 animate-pageEnter">
-      <div className="max-w-7xl mx-auto px-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 pt-28 sm:pt-32 pb-16 sm:pb-20 animate-pageEnter">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between mb-12">
           <div>
-            <h1 className="text-5xl font-bold text-white mb-2">{t('admin.title')}</h1>
+            <h1 className="text-3xl sm:text-5xl font-bold text-white mb-2">{t('admin.title')}</h1>
             <p className="text-gray-400">{t('admin.subtitle')}</p>
           </div>
         </div>
@@ -1548,7 +1548,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
                             className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500/90 text-white text-xs hover:bg-red-600 transition"
                             aria-label={`Remove image ${index + 1}`}
                           >
-                            ?
+                            x
                           </button>
                         </div>
                       ))}
@@ -1571,7 +1571,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
                   {newCar.features.map((feature, idx) => (
                     <div key={idx} className="flex items-center gap-2 px-3 py-1 bg-teal-500/20 border border-teal-500/50 rounded-full text-teal-300 text-sm">
                       {feature}
-                      <button type="button" onClick={() => handleRemoveFeature(idx)} className="text-teal-400 hover:text-teal-200 transition">?</button>
+                      <button type="button" onClick={() => handleRemoveFeature(idx)} className="text-teal-400 hover:text-teal-200 transition">x</button>
                     </div>
                   ))}
                 </div>
@@ -1757,8 +1757,8 @@ const Home = ({ onNavigate }: HomeProps) => {
           <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-gradient-to-tr from-teal-500/20 to-transparent rounded-full blur-3xl"></div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 relative z-10 py-20">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 py-16 sm:py-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             <div className="space-y-8 animate-fadeInUp">
               <div>
                 <span className="inline-block px-4 py-2 bg-teal-500/20 border border-teal-500/40 rounded-full text-teal-300 text-sm font-medium mb-6">
@@ -1773,7 +1773,7 @@ const Home = ({ onNavigate }: HomeProps) => {
                 </h1>
               </div>
 
-              <p className="text-xl text-gray-300 leading-relaxed max-w-xl">
+              <p className="text-base sm:text-xl text-gray-300 leading-relaxed max-w-xl">
                 {t('home.desc')}
               </p>
 
@@ -1799,7 +1799,7 @@ const Home = ({ onNavigate }: HomeProps) => {
             <div className="relative animate-fadeInRight" style={{ animationDelay: '0.2s' }}>
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-teal-500/30 to-blue-500/30 rounded-3xl blur-3xl"></div>
-                <div className="relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-12 text-center shadow-2xl">
+                <div className="relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-6 sm:p-12 text-center shadow-2xl">
                   <img
                     src="https://cdn.pixabay.com/photo/2017/03/27/14/56/auto-2179220_1280.jpg"
                     alt="Featured car"
@@ -1851,14 +1851,14 @@ const CarPark = ({ onNavigate, cars }: CarParkProps) => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 pt-32 pb-20 animate-pageEnter">
-      <div className="max-w-7xl mx-auto px-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 pt-28 sm:pt-32 pb-16 sm:pb-20 animate-pageEnter">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-16 animate-fadeInUp">
-          <h1 className="text-5xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+          <h1 className="text-3xl sm:text-5xl font-bold text-white mb-4 flex items-center justify-center gap-3">
             <CarIcon className="w-10 h-10 text-teal-400" />
             {t('carpark.title')}
           </h1>
-          <p className="text-gray-400 text-lg">
+          <p className="text-gray-400 text-base sm:text-lg">
             {availableCars.length} / {totalAvailableCars} {t('home.carsAvailable')}
           </p>
           <div className="mt-8 max-w-xl mx-auto">
