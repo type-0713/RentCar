@@ -29,7 +29,7 @@ const ENABLE_APPLE_AUTH = import.meta.env.VITE_ENABLE_APPLE_AUTH !== 'false';
 const ENABLE_MICROSOFT_AUTH = import.meta.env.VITE_ENABLE_MICROSOFT_AUTH !== 'false';
 const MIN_CAR_IMAGES = 5;
 const MAX_CAR_IMAGES = 10;
-const MAX_IMAGE_SIZE_MB = 4;
+const MAX_IMAGE_SIZE_MB = 10;
 
 const formatDateInput = (date: Date) => {
   const year = date.getFullYear();
@@ -159,7 +159,7 @@ interface CarDetailProps {
 interface AdminPanelProps {
   cars: Car[];
   bookings: Booking[];
-  onAddCar: (newCar: NewCarInput) => void;
+  onAddCar: (newCar: NewCarInput) => Promise<boolean>;
   onDeleteCar: (carId: number) => void;
   messages: ChatMessage[];
   onSendMessage: SendMessageFn;
@@ -1331,6 +1331,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [replyMessage, setReplyMessage] = useState('');
   const [isReplySending, setIsReplySending] = useState(false);
+  const [isSavingCar, setIsSavingCar] = useState(false);
 
   const carEmojis = ['CAR', 'SUV', 'SPORT', 'RACE', 'VAN', 'PICKUP', 'EV', 'LUX'];
   const incomingMessages = messages.filter((m) => m.sender === 'user').slice().reverse();
@@ -1401,8 +1402,9 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
     });
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isSavingCar) return;
     if (!newCar.name.trim() || !newCar.price.trim()) {
       alert('Please enter car name and price.');
       return;
@@ -1416,25 +1418,34 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
       return;
     }
 
-    onAddCar({
-      ...newCar,
-      name: newCar.name.trim(),
-      price: newCar.price.trim(),
-      quantity: Math.max(1, Math.floor(Number(newCar.quantity) || 1)),
-      imageGallery: newCar.imageGallery.slice(0, MAX_CAR_IMAGES)
-    });
+    setIsSavingCar(true);
+    try {
+      const saved = await onAddCar({
+        ...newCar,
+        name: newCar.name.trim(),
+        price: newCar.price.trim(),
+        quantity: Math.max(1, Math.floor(Number(newCar.quantity) || 1)),
+        imageGallery: newCar.imageGallery.slice(0, MAX_CAR_IMAGES)
+      });
 
-    setNewCar({
-      name: '',
-      price: '',
-      features: [],
-      image: 'CAR',
-      imageBase64: '',
-      imageGallery: [],
-      rating: 4.8,
-      quantity: 1
-    });
-    setShowForm(false);
+      if (!saved) {
+        return;
+      }
+
+      setNewCar({
+        name: '',
+        price: '',
+        features: [],
+        image: 'CAR',
+        imageBase64: '',
+        imageGallery: [],
+        rating: 4.8,
+        quantity: 1
+      });
+      setShowForm(false);
+    } finally {
+      setIsSavingCar(false);
+    }
   };
 
   const handleDeleteCarClick = (car: Car) => {
@@ -1578,7 +1589,9 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
               </div>
 
               <div className="flex gap-4 pt-6">
-                <button type="submit" className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white font-bold rounded-xl transition">Add Car to Fleet</button>
+                <button type="submit" disabled={isSavingCar} className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white font-bold rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed">
+                  {isSavingCar ? 'Saving...' : 'Add Car to Fleet'}
+                </button>
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 border border-white/20 text-white font-bold rounded-xl hover:bg-white/5 transition">Cancel</button>
               </div>
             </form>
@@ -2610,7 +2623,7 @@ const DLRentApp = () => {
     if (!auth.currentUser) {
       alert('Avval login qiling.');
       setCurrentPage('login');
-      return;
+      return false;
     }
     const normalizedName = newCar.name.trim().toLowerCase();
     const existingCar = cars.find((car) => car.name.trim().toLowerCase() === normalizedName);
@@ -2638,7 +2651,7 @@ const DLRentApp = () => {
               : car
           )
         );
-        return;
+        return true;
       } catch (error) {
         console.error('Could not increase car quantity:', error);
         alert(
@@ -2646,7 +2659,7 @@ const DLRentApp = () => {
             ? error.message
             : 'Car quantity was not updated. Firebase ruxsatlarini tekshiring.'
         );
-        return;
+        return false;
       }
     }
 
@@ -2694,11 +2707,13 @@ const DLRentApp = () => {
         ...prev,
         normalizedCreatedCar
       ]);
+      return true;
     } catch (error) {
       console.error('Could not save car to Firestore:', error);
       alert(
         error instanceof Error ? error.message : 'Car was not saved. Firebase ruxsatlarini tekshiring.'
       );
+      return false;
     }
   };
 
