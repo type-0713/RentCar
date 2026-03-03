@@ -10,7 +10,7 @@ import {
   signInWithPopup,
   signOut,
 } from 'firebase/auth';
-import { collection, doc, getDoc, getDocs, runTransaction, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, runTransaction, setDoc } from 'firebase/firestore';
 import { appleProvider, auth, db, googleProvider, microsoftProvider } from '../firebase';
 import brandLogo from '../assets/image.png';
 
@@ -342,30 +342,30 @@ const apiFetch = async (url: string, init?: RequestInit): Promise<ApiJsonRespons
 
     if (path.startsWith('/cars/') && method === 'DELETE') {
       const id = Number(path.split('/')[2]);
-      const batch = writeBatch(db);
-      batch.delete(doc(db, 'car', String(id)));
-
+      await deleteDoc(doc(db, 'car', String(id)));
       const bookingsSnapshot = await getDocs(collection(db, 'bookings'));
       const relatedBookingIds = new Set<number>();
+      const relatedBookingDocIds: string[] = [];
       bookingsSnapshot.docs.forEach((bookingDoc) => {
         const bookingData = bookingDoc.data() as Partial<Booking>;
         if (Number(bookingData.carId) === id) {
           relatedBookingIds.add(Number(bookingData.id));
-          batch.delete(bookingDoc.ref);
+          relatedBookingDocIds.push(bookingDoc.id);
         }
       });
+      await Promise.all(relatedBookingDocIds.map((bookingId) => deleteDoc(doc(db, 'bookings', bookingId))));
 
       if (relatedBookingIds.size > 0) {
         const messagesSnapshot = await getDocs(collection(db, 'messages'));
+        const relatedMessageDocIds: string[] = [];
         messagesSnapshot.docs.forEach((messageDoc) => {
           const messageData = messageDoc.data() as Partial<ChatMessage>;
           if (relatedBookingIds.has(Number(messageData.bookingId))) {
-            batch.delete(messageDoc.ref);
+            relatedMessageDocIds.push(messageDoc.id);
           }
         });
+        await Promise.all(relatedMessageDocIds.map((messageId) => deleteDoc(doc(db, 'messages', messageId))));
       }
-
-      await batch.commit();
       return createApiJsonResponse({ success: true });
     }
 
@@ -1386,10 +1386,6 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
     }
     if (normalizedImageUrls.length > MAX_CAR_IMAGES) {
       alert(`You can upload up to ${MAX_CAR_IMAGES} images.`);
-      return;
-    }
-    if (new Set(normalizedImageUrls).size !== normalizedImageUrls.length) {
-      alert('Image URLs must be unique.');
       return;
     }
     for (const imageUrl of normalizedImageUrls) {
@@ -3206,11 +3202,3 @@ const DLRentApp = () => {
 };
 
 export default DLRentApp;
-
-
-
-
-
-
-
-
