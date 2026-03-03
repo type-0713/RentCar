@@ -2011,13 +2011,18 @@ const DLRentApp = () => {
   // ==================== LOAD DATA FROM FIRESTORE ====================
   useEffect(() => {
     const loadChatData = async () => {
+      if (!auth.currentUser) {
+        setBookings([]);
+        setMessages([]);
+        return;
+      }
       try {
         const [bookingsRes, messagesRes] = await Promise.all([
           apiFetch(`${API_URL}/bookings`),
           apiFetch(`${API_URL}/messages`)
         ]);
         if (!bookingsRes.ok || !messagesRes.ok) {
-          throw new Error('Bookings/messages API request failed');
+          throw new Error('Bookings/messages Firestore request failed');
         }
 
         const rawBookings = (await bookingsRes.json()) as unknown[];
@@ -2129,11 +2134,21 @@ const DLRentApp = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (!firebaseUser) {
+        setUserName('');
+        setUserRole('');
+        setCurrentPage('login');
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
         setAuthRefreshToken((prev) => prev + 1);
         return;
       }
       const email = firebaseUser.email ?? firebaseUser.displayName ?? '';
       if (!email) {
+        setUserName('');
+        setUserRole('');
+        setCurrentPage('login');
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
         setAuthRefreshToken((prev) => prev + 1);
         return;
       }
@@ -2161,7 +2176,7 @@ const DLRentApp = () => {
       try {
         const response = await apiFetch(`${API_URL}/cars`);
         if (!response.ok) {
-          throw new Error(`Cars API request failed with status ${response.status}`);
+          throw new Error(`Cars Firestore request failed with status ${response.status}`);
         }
         const data = (await response.json()) as unknown[];
         const processedCars = data
@@ -2680,7 +2695,7 @@ const DLRentApp = () => {
         normalizedCreatedCar
       ]);
     } catch (error) {
-      console.error('Could not save car to API:', error);
+      console.error('Could not save car to Firestore:', error);
       alert(
         error instanceof Error ? error.message : 'Car was not saved. Firebase ruxsatlarini tekshiring.'
       );
@@ -2719,7 +2734,7 @@ const DLRentApp = () => {
         setSelectedBooking(null);
       }
     } catch (error) {
-      console.error('Could not delete car from API:', error);
+      console.error('Could not delete car from Firestore:', error);
       alert(
         error instanceof Error ? error.message : 'Car was not deleted. Firebase ruxsatlarini tekshiring.'
       );
