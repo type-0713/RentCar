@@ -27,8 +27,7 @@ const API_URL = '';
 const ENABLE_GOOGLE_AUTH = import.meta.env.VITE_ENABLE_GOOGLE_AUTH !== 'false';
 const ENABLE_APPLE_AUTH = import.meta.env.VITE_ENABLE_APPLE_AUTH !== 'false';
 const ENABLE_MICROSOFT_AUTH = import.meta.env.VITE_ENABLE_MICROSOFT_AUTH !== 'false';
-const MIN_CAR_IMAGES = 5;
-const MAX_CAR_IMAGES = 10;
+const MAX_CAR_IMAGES = 5;
 const MAX_IMAGE_SIZE_MB = 10;
 
 const formatDateInput = (date: Date) => {
@@ -1409,10 +1408,6 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
       alert('Please enter car name and price.');
       return;
     }
-    if (newCar.imageGallery.length < MIN_CAR_IMAGES) {
-      alert(`Please upload at least ${MIN_CAR_IMAGES} images for each car.`);
-      return;
-    }
     if (newCar.imageGallery.length > MAX_CAR_IMAGES) {
       alert(`You can upload up to ${MAX_CAR_IMAGES} images.`);
       return;
@@ -1546,7 +1541,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
                     className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-teal-500 file:text-white hover:file:bg-teal-600"
                   />
                   <p className="mt-2 text-xs text-gray-400">
-                    Upload at least {MIN_CAR_IMAGES} images. Max {MAX_CAR_IMAGES}. Current: {newCar.imageGallery.length}
+                    Images are optional. Max {MAX_CAR_IMAGES}. Current: {newCar.imageGallery.length}
                   </p>
                   {newCar.imageGallery.length > 0 && (
                     <div className="mt-3 grid grid-cols-3 gap-2">
