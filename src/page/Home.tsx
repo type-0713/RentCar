@@ -606,19 +606,6 @@ const Login = ({ onNavigate, onLoginSuccess, onEmailAuth, onSocialAuth }: LoginP
           )}
         </div>
 
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="p-4 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-sm">
-            <p className="text-xs text-slate-400 mb-2 font-semibold uppercase tracking-wider">{t('login.userAuth')}</p>
-            <p className="text-xs text-slate-300">{t('login.userAuthLine1')}</p>
-            <p className="text-xs text-slate-300">{t('login.userAuthLine2')}</p>
-          </div>
-
-          <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-2xl backdrop-blur-sm">
-            <p className="text-xs text-blue-300 mb-2 font-semibold uppercase tracking-wider">{t('login.adminDemo')}</p>
-            <p className="text-xs text-blue-200">{t('login.adminEmail')}: <span className="text-blue-300 font-semibold">{ADMIN_EMAIL}</span></p>
-            <p className="text-xs text-blue-200">{t('login.adminPass')}: <span className="text-blue-300 font-semibold">654987</span></p>
-          </div>
-        </div>
       </div>
     </div>
   );
