@@ -684,8 +684,8 @@ const ChatModal = ({ booking, onClose, onSendMessage, messages }: ChatModalProps
               <p>{t('chat.noMessages')}</p>
             </div>
           ) : (
-            bookingMessages.map((msg, idx) => (
-              <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+            bookingMessages.map((msg) => (
+              <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl shadow ${msg.sender === 'user'
                   ? 'bg-teal-500/30 border border-teal-500/50 text-teal-100'
                   : 'bg-blue-500/30 border border-blue-500/50 text-blue-100'
@@ -1364,7 +1364,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
   const handleImageUrlChange = (index: number, value: string) => {
     setNewCar((prev) => {
       const next = [...prev.imageGallery];
-      next[index] = value;
+      next[index] = value.trim();
       return { ...prev, imageGallery: next };
     });
   };
@@ -1381,7 +1381,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
       .map((item) => item.trim())
       .filter((item) => item.length > 0);
     if (normalizedImageUrls.length < MIN_CAR_IMAGES) {
-      alert(`Please upload at least ${MIN_CAR_IMAGES} images.`);
+      alert(`Please fill all ${BASE_URL_INPUT_COUNT} image URLs.`);
       return;
     }
     if (normalizedImageUrls.length > MAX_CAR_IMAGES) {
@@ -1536,7 +1536,10 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
                           value={newCar.imageGallery[index] ?? ''}
                           onChange={(e) => handleImageUrlChange(index, e.target.value)}
                           placeholder={`https://...`}
-                          className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-teal-400"
+                          className={`w-full px-4 py-3 bg-white/10 border rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-teal-400 ${
+                            (newCar.imageGallery[index] ?? '').trim() ? 'border-teal-500/50' : 'border-white/20'
+                          }`}
+                          autoComplete="off"
                         />
                       </div>
                     ))}
@@ -2652,7 +2655,7 @@ const DLRentApp = () => {
     const payload: Omit<Car, 'id'> = {
       ...newCar,
       imageGallery: newCar.imageGallery,
-      price: newCar.price.startsWith('EUR ') ? newCar.price : `EUR ${newCar.price}`,
+      price: newCar.price.trim().toUpperCase().startsWith('EUR ') ? newCar.price.trim() : `EUR ${newCar.price.trim()}`,
       quantity: Math.max(1, newCar.quantity)
     };
 
