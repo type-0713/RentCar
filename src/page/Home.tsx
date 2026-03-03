@@ -11,7 +11,8 @@ import {
   signOut,
 } from 'firebase/auth';
 import { collection, deleteDoc, doc, getDoc, getDocs, runTransaction, setDoc } from 'firebase/firestore';
-import { appleProvider, auth, db, googleProvider, microsoftProvider } from '../firebase';
+import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
+import { appleProvider, auth, db, googleProvider, microsoftProvider, storage } from '../firebase';
 import brandLogo from '../assets/image.png';
 
 type Page = 'login' | 'home' | 'carpark' | 'cardetail' | 'about' | 'contacts' | 'admin';
@@ -27,11 +28,9 @@ const API_URL = '';
 const ENABLE_GOOGLE_AUTH = import.meta.env.VITE_ENABLE_GOOGLE_AUTH !== 'false';
 const ENABLE_APPLE_AUTH = import.meta.env.VITE_ENABLE_APPLE_AUTH !== 'false';
 const ENABLE_MICROSOFT_AUTH = import.meta.env.VITE_ENABLE_MICROSOFT_AUTH !== 'false';
-const MAX_CAR_IMAGES = 5;
+const MIN_CAR_IMAGES = 5;
+const MAX_CAR_IMAGES = 10;
 const MAX_IMAGE_SIZE_MB = 6;
-const MAX_IMAGE_DIMENSION = 1600;
-const MAX_SINGLE_IMAGE_BASE64_CHARS = 240_000;
-const MAX_TOTAL_GALLERY_BASE64_CHARS = 820_000;
 
 const formatDateInput = (date: Date) => {
   const year = date.getFullYear();
@@ -1334,6 +1333,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
   const [replyMessage, setReplyMessage] = useState('');
   const [isReplySending, setIsReplySending] = useState(false);
   const [isSavingCar, setIsSavingCar] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
 
   const carEmojis = ['CAR', 'SUV', 'SPORT', 'RACE', 'VAN', 'PICKUP', 'EV', 'LUX'];
   const incomingMessages = messages.filter((m) => m.sender === 'user').slice().reverse();
@@ -1356,8 +1356,21 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
   const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (files.length === 0) return;
+    if (isUploadingImages) return;
 
-    for (const file of files) {
+    const remainingSlots = MAX_CAR_IMAGES - newCar.imageGallery.length;
+    if (remainingSlots <= 0) {
+      alert(`You can upload up to ${MAX_CAR_IMAGES} images.`);
+      e.target.value = '';
+      return;
+    }
+
+    const filesToUpload = files.slice(0, remainingSlots);
+    if (files.length > filesToUpload.length) {
+      alert(`Only ${filesToUpload.length} image(s) were selected. Max ${MAX_CAR_IMAGES} images allowed.`);
+    }
+
+    for (const file of filesToUpload) {
       if (!file.type.startsWith('image/')) {
         alert('Please upload valid image files only.');
         return;
@@ -1368,93 +1381,32 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
       }
     }
 
-    const compressForFirestore = (file: File) =>
-      new Promise<string>((resolve, reject) => {
-        const image = new Image();
-        const objectUrl = URL.createObjectURL(file);
-
-        image.onload = () => {
-          try {
-            let width = image.width;
-            let height = image.height;
-            if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
-              const ratio = Math.min(MAX_IMAGE_DIMENSION / width, MAX_IMAGE_DIMENSION / height);
-              width = Math.max(1, Math.round(width * ratio));
-              height = Math.max(1, Math.round(height * ratio));
-            }
-
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            if (!context) {
-              URL.revokeObjectURL(objectUrl);
-              reject(new Error('Could not process image.'));
-              return;
-            }
-
-            let quality = 0.82;
-            let dataUrl = '';
-            for (let attempt = 0; attempt < 8; attempt += 1) {
-              canvas.width = width;
-              canvas.height = height;
-              context.clearRect(0, 0, width, height);
-              context.drawImage(image, 0, 0, width, height);
-              dataUrl = canvas.toDataURL('image/jpeg', quality);
-
-              if (dataUrl.length <= MAX_SINGLE_IMAGE_BASE64_CHARS) {
-                break;
-              }
-
-              if (quality > 0.5) {
-                quality -= 0.08;
-              } else {
-                width = Math.max(700, Math.round(width * 0.86));
-                height = Math.max(500, Math.round(height * 0.86));
-              }
-            }
-
-            URL.revokeObjectURL(objectUrl);
-            resolve(dataUrl);
-          } catch (compressError) {
-            URL.revokeObjectURL(objectUrl);
-            reject(compressError);
-          }
-        };
-
-        image.onerror = () => {
-          URL.revokeObjectURL(objectUrl);
-          reject(new Error('Failed to read image file.'));
-        };
-
-        image.src = objectUrl;
-      });
-
+    setIsUploadingImages(true);
     try {
-      const uploadedImages = (await Promise.all(files.map(compressForFirestore))).filter((img) => img.trim().length > 0);
-      let merged = [...newCar.imageGallery, ...uploadedImages].slice(0, MAX_CAR_IMAGES);
+      const now = Date.now();
+      const uploadedUrls = await Promise.all(
+        filesToUpload.map(async (file, index) => {
+          const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const imageRef = storageRef(storage, `car-images/${now}-${index}-${safeFileName}`);
+          await uploadBytes(imageRef, file, { contentType: file.type });
+          return getDownloadURL(imageRef);
+        })
+      );
 
-      while (merged.join('').length > MAX_TOTAL_GALLERY_BASE64_CHARS && merged.length > 0) {
-        merged = merged.slice(0, -1);
-      }
-
-      if (merged.length === 0) {
-        alert('Images are too large for Firestore. Please upload smaller images.');
-        e.target.value = '';
-        return;
-      }
-
-      if (merged.length < newCar.imageGallery.length + uploadedImages.length) {
-        alert('Some images were skipped to stay within Firestore size limits.');
-      }
-
-      setNewCar((prev) => ({
-        ...prev,
-        imageGallery: merged,
-        imageBase64: merged[0] ?? ''
-      }));
-      e.target.value = '';
+      setNewCar((prev) => {
+        const merged = [...prev.imageGallery, ...uploadedUrls].slice(0, MAX_CAR_IMAGES);
+        return {
+          ...prev,
+          imageGallery: merged,
+          imageBase64: merged[0] ?? ''
+        };
+      });
     } catch (error) {
       console.error(error);
-      alert('Could not process selected images.');
+      alert('Could not upload images to Firebase Storage.');
+    } finally {
+      setIsUploadingImages(false);
+      e.target.value = '';
     }
   };
 
@@ -1471,9 +1423,13 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isSavingCar) return;
+    if (isSavingCar || isUploadingImages) return;
     if (!newCar.name.trim() || !newCar.price.trim()) {
       alert('Please enter car name and price.');
+      return;
+    }
+    if (newCar.imageGallery.length < MIN_CAR_IMAGES) {
+      alert(`Please upload at least ${MIN_CAR_IMAGES} images.`);
       return;
     }
     if (newCar.imageGallery.length > MAX_CAR_IMAGES) {
@@ -1606,10 +1562,11 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
                     accept="image/*"
                     multiple
                     onChange={handleImageUpload}
+                    disabled={isUploadingImages}
                     className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-teal-500 file:text-white hover:file:bg-teal-600"
                   />
                   <p className="mt-2 text-xs text-gray-400">
-                    Images are optional. Max {MAX_CAR_IMAGES}. Current: {newCar.imageGallery.length}
+                    Min {MIN_CAR_IMAGES}, max {MAX_CAR_IMAGES}. Current: {newCar.imageGallery.length}
                   </p>
                   {newCar.imageGallery.length > 0 && (
                     <div className="mt-3 grid grid-cols-3 gap-2">
@@ -1652,8 +1609,8 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
               </div>
 
               <div className="flex gap-4 pt-6">
-                <button type="submit" disabled={isSavingCar} className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white font-bold rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed">
-                  {isSavingCar ? 'Saving...' : 'Add Car to Fleet'}
+                <button type="submit" disabled={isSavingCar || isUploadingImages} className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white font-bold rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed">
+                  {isUploadingImages ? 'Uploading images...' : isSavingCar ? 'Saving...' : 'Add Car to Fleet'}
                 </button>
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 border border-white/20 text-white font-bold rounded-xl hover:bg-white/5 transition">Cancel</button>
               </div>
