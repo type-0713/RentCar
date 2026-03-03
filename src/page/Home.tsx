@@ -2806,6 +2806,7 @@ const DLRentApp = () => {
           --brand-c: #f59e0b;
           --shadow-soft: 0 14px 40px rgba(2, 8, 23, 0.34);
           --shadow-pop: 0 22px 56px rgba(2, 8, 23, 0.44);
+          --radius-xl: 22px;
         }
 
         .theme-light {
@@ -2837,6 +2838,20 @@ const DLRentApp = () => {
             radial-gradient(780px 460px at 52% 120%, color-mix(in srgb, var(--brand-c) 12%, transparent), transparent 72%),
             linear-gradient(170deg, var(--bg-start), var(--bg-end));
           transition: background 260ms ease, color 220ms ease;
+        }
+
+        body::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          pointer-events: none;
+          z-index: 0;
+          opacity: 0.08;
+          background-image:
+            radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.15) 0 1px, transparent 1px),
+            radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.1) 0 1px, transparent 1px);
+          background-size: 3px 3px, 4px 4px;
+          mix-blend-mode: soft-light;
         }
 
         h1, h2, h3, h4, .font-bold {
@@ -2977,6 +2992,7 @@ const DLRentApp = () => {
         .app-shell [class*='rounded-3xl'] {
           backdrop-filter: blur(14px);
           transition: transform 180ms ease, box-shadow 220ms ease, border-color 180ms ease;
+          border-radius: var(--radius-xl);
         }
 
         @media (hover: hover) {
@@ -2990,6 +3006,8 @@ const DLRentApp = () => {
 
         .app-shell button {
           transition: transform 170ms ease, box-shadow 170ms ease, filter 170ms ease, background-color 170ms ease;
+          font-weight: 600;
+          letter-spacing: 0.01em;
         }
 
         .app-shell button:hover {
@@ -3029,6 +3047,13 @@ const DLRentApp = () => {
         .app-shell select {
           border-color: var(--soft-border) !important;
           background: color-mix(in srgb, var(--panel) 80%, transparent) !important;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+          caret-color: color-mix(in srgb, var(--brand-a) 80%, #fff 20%);
+        }
+
+        .app-shell input::placeholder,
+        .app-shell textarea::placeholder {
+          color: color-mix(in srgb, var(--text-soft) 82%, #fff 18%);
         }
 
         .app-shell input:focus,
@@ -3055,6 +3080,14 @@ const DLRentApp = () => {
         .app-shell [class*='bg-white/15'] {
           background: linear-gradient(150deg, color-mix(in srgb, var(--panel) 88%, transparent), color-mix(in srgb, var(--panel-strong) 90%, transparent)) !important;
           border-color: var(--soft-border) !important;
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            0 12px 30px color-mix(in srgb, var(--brand-b) 8%, transparent);
+        }
+
+        .app-shell h1,
+        .app-shell h2 {
+          text-wrap: balance;
         }
 
         .app-shell [class*='shadow-2xl'],
