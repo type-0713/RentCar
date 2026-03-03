@@ -1368,6 +1368,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
       return { ...prev, imageGallery: next };
     });
   };
+  const filledImageUrlCount = newCar.imageGallery.filter((img) => img.trim().length > 0).length;
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -1521,8 +1522,10 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
                   <input type="number" min="1" value={newCar.quantity} onChange={(e) => setNewCar((prev) => ({ ...prev, quantity: Math.max(1, Number(e.target.value) || 1) }))} placeholder="e.g. 3" className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:border-teal-400" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-200 mb-2">Car Images</label>
-                  <div className="space-y-2.5 rounded-xl border border-white/15 bg-white/5 p-3">
+                  <label className="block text-sm font-medium text-gray-200 mb-2">
+                    Car Images <span className="text-teal-300">(Required)</span>
+                  </label>
+                  <div className="space-y-2.5 rounded-xl border border-white/15 bg-gradient-to-br from-white/10 to-white/5 p-3 shadow-lg">
                     {Array.from({ length: BASE_URL_INPUT_COUNT }).map((_, index) => (
                       <div key={`image-url-${index}`} className="flex items-center gap-2">
                         <span className="w-7 h-7 rounded-lg bg-teal-500/20 border border-teal-500/40 text-teal-300 text-xs font-semibold flex items-center justify-center">
@@ -1538,10 +1541,16 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
                       </div>
                     ))}
                   </div>
+                  <div className="mt-2 h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-teal-400 to-blue-400 transition-all duration-300"
+                      style={{ width: `${(filledImageUrlCount / BASE_URL_INPUT_COUNT) * 100}%` }}
+                    />
+                  </div>
                   <p className="mt-2 text-xs text-gray-400">
-                    Fill all {BASE_URL_INPUT_COUNT} URL inputs. Current: {newCar.imageGallery.filter((img) => img.trim().length > 0).length}
+                    Fill all {BASE_URL_INPUT_COUNT} URL inputs. Current: {filledImageUrlCount}
                   </p>
-                  {newCar.imageGallery.filter((img) => img.trim().length > 0).length > 0 && (
+                  {filledImageUrlCount > 0 && (
                     <div className="mt-3 grid grid-cols-3 gap-2">
                       {newCar.imageGallery
                         .filter((img) => img.trim().length > 0)
@@ -2372,7 +2381,7 @@ const DLRentApp = () => {
 
   const handleSocialAuth = async (provider: SocialProvider) => {
     if (provider === 'google' && !ENABLE_GOOGLE_AUTH) {
-      return { ok: false, message: 'Google sign-in vaqtincha o‘chirilgan.' };
+      return { ok: false, message: 'Google sign-in vaqtincha o\'chirilgan.' };
     }
     if (provider === 'apple' && !ENABLE_APPLE_AUTH) {
       return { ok: false, message: 'Apple sign-in hali sozlanmagan.' };
