@@ -10,7 +10,7 @@ import {
   signInWithPopup,
   signOut,
 } from 'firebase/auth';
-import { collection, deleteDoc, doc, getDoc, getDocs, runTransaction, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, runTransaction, setDoc, writeBatch } from 'firebase/firestore';
 import { appleProvider, auth, db, googleProvider, microsoftProvider } from '../firebase';
 import brandLogo from '../assets/image.png';
 
@@ -342,7 +342,30 @@ const apiFetch = async (url: string, init?: RequestInit): Promise<ApiJsonRespons
 
     if (path.startsWith('/cars/') && method === 'DELETE') {
       const id = Number(path.split('/')[2]);
-      await deleteDoc(doc(db, 'car', String(id)));
+      const batch = writeBatch(db);
+      batch.delete(doc(db, 'car', String(id)));
+
+      const bookingsSnapshot = await getDocs(collection(db, 'bookings'));
+      const relatedBookingIds = new Set<number>();
+      bookingsSnapshot.docs.forEach((bookingDoc) => {
+        const bookingData = bookingDoc.data() as Partial<Booking>;
+        if (Number(bookingData.carId) === id) {
+          relatedBookingIds.add(Number(bookingData.id));
+          batch.delete(bookingDoc.ref);
+        }
+      });
+
+      if (relatedBookingIds.size > 0) {
+        const messagesSnapshot = await getDocs(collection(db, 'messages'));
+        messagesSnapshot.docs.forEach((messageDoc) => {
+          const messageData = messageDoc.data() as Partial<ChatMessage>;
+          if (relatedBookingIds.has(Number(messageData.bookingId))) {
+            batch.delete(messageDoc.ref);
+          }
+        });
+      }
+
+      await batch.commit();
       return createApiJsonResponse({ success: true });
     }
 
