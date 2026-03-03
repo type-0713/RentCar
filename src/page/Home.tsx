@@ -2841,6 +2841,7 @@ const DLRentApp = () => {
             radial-gradient(920px 580px at 91% -14%, color-mix(in srgb, var(--brand-b) 14%, transparent), transparent 68%),
             linear-gradient(170deg, var(--bg-start), var(--bg-end));
           color: var(--text-main);
+          overflow-x: clip;
         }
 
         .brand-logo-wrap {
@@ -2926,6 +2927,20 @@ const DLRentApp = () => {
           mask-image: radial-gradient(circle at center, #000 20%, transparent 80%);
         }
 
+        .app-shell::after {
+          content: '';
+          position: fixed;
+          inset: -22vmax;
+          pointer-events: none;
+          z-index: 0;
+          opacity: 0.2;
+          background:
+            radial-gradient(circle at 18% 28%, color-mix(in srgb, var(--brand-a) 28%, transparent), transparent 36%),
+            radial-gradient(circle at 82% 14%, color-mix(in srgb, var(--brand-b) 24%, transparent), transparent 40%),
+            radial-gradient(circle at 52% 82%, color-mix(in srgb, var(--brand-c) 20%, transparent), transparent 44%);
+          animation: premiumDrift 18s ease-in-out infinite alternate;
+        }
+
         .app-shell > * {
           position: relative;
           z-index: 1;
@@ -2937,9 +2952,31 @@ const DLRentApp = () => {
           border-color: var(--soft-border) !important;
         }
 
+        .app-shell nav .max-w-7xl {
+          max-width: min(1240px, calc(100% - 1.5rem));
+          margin-top: 0.72rem;
+          border: 1px solid color-mix(in srgb, var(--soft-border) 82%, transparent);
+          border-radius: 18px;
+          background:
+            linear-gradient(130deg, color-mix(in srgb, var(--panel-strong) 92%, transparent), color-mix(in srgb, var(--panel) 90%, transparent));
+          box-shadow:
+            0 8px 22px color-mix(in srgb, var(--brand-b) 14%, transparent),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
         .app-shell [class*='rounded-2xl'],
         .app-shell [class*='rounded-3xl'] {
           backdrop-filter: blur(14px);
+          transition: transform 180ms ease, box-shadow 220ms ease, border-color 180ms ease;
+        }
+
+        @media (hover: hover) {
+          .app-shell [class*='rounded-2xl']:hover,
+          .app-shell [class*='rounded-3xl']:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-pop) !important;
+            border-color: color-mix(in srgb, var(--brand-b) 42%, var(--soft-border)) !important;
+          }
         }
 
         .app-shell button {
@@ -2952,6 +2989,30 @@ const DLRentApp = () => {
 
         .app-shell button:active {
           transform: translateY(0) scale(0.98);
+        }
+
+        .app-shell button[class*='from-teal-500'][class*='to-blue-500'] {
+          position: relative;
+          overflow: hidden;
+          box-shadow:
+            0 10px 24px color-mix(in srgb, var(--brand-b) 28%, transparent),
+            0 4px 12px color-mix(in srgb, var(--brand-a) 24%, transparent);
+        }
+
+        .app-shell button[class*='from-teal-500'][class*='to-blue-500']::before {
+          content: '';
+          position: absolute;
+          top: -160%;
+          left: -32%;
+          width: 44%;
+          height: 430%;
+          transform: rotate(24deg);
+          background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.34), transparent);
+          transition: left 420ms ease;
+        }
+
+        .app-shell button[class*='from-teal-500'][class*='to-blue-500']:hover::before {
+          left: 118%;
         }
 
         .app-shell input,
@@ -3052,6 +3113,11 @@ const DLRentApp = () => {
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
+        @keyframes premiumDrift {
+          from { transform: translate3d(-2%, -2%, 0) rotate(0.001deg) scale(1); }
+          to { transform: translate3d(2%, 1%, 0) rotate(0.001deg) scale(1.05); }
+        }
+
         .animate-fadeInUp { animation: fadeInUp 0.72s cubic-bezier(0.16, 1, 0.3, 1) both; }
         .animate-fadeInRight { animation: fadeInRight 0.68s cubic-bezier(0.16, 1, 0.3, 1) both; }
         .animate-pageEnter,
@@ -3063,6 +3129,20 @@ const DLRentApp = () => {
           .app-shell::before {
             background-size: 42px 42px;
             opacity: 0.24;
+          }
+
+          .app-shell::after {
+            opacity: 0.12;
+          }
+
+          .app-shell nav .max-w-7xl {
+            max-width: calc(100% - 0.9rem);
+            margin-top: 0.45rem;
+            border-radius: 14px;
+            padding-left: 0.9rem !important;
+            padding-right: 0.9rem !important;
+            padding-top: 0.72rem !important;
+            padding-bottom: 0.72rem !important;
           }
 
           .brand-logo-sm {
