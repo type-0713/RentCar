@@ -1210,6 +1210,18 @@ const Navigation = ({ currentPage, onNavigate, userName, userRole, onLogout, the
         <div className="lg:hidden bg-slate-950/95 border-t border-white/10 p-4 space-y-3">
           <button
             type="button"
+            onClick={() => {
+              onToggleTheme();
+              setIsMenuOpen(false);
+            }}
+            className="w-full text-left px-4 py-2 border border-white/20 text-gray-200 hover:bg-white/10 rounded-lg transition flex items-center gap-2"
+            title={themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {themeMode === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            <span>{themeMode === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+          </button>
+          <button
+            type="button"
             onClick={() => void i18n.changeLanguage(nextLanguage)}
             className="w-full text-left px-4 py-2 border border-white/20 text-gray-200 hover:bg-white/10 rounded-lg transition font-semibold tracking-wide"
           >
@@ -1977,7 +1989,8 @@ const DLRentApp = () => {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     if (typeof window === 'undefined') return 'dark';
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-    return savedTheme === 'light' ? 'light' : 'dark';
+    if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   });
   const [cars, setCars] = useState<Car[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
