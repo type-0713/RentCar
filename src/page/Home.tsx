@@ -226,7 +226,7 @@ const apiFetch = async (url: string, init?: RequestInit): Promise<ApiJsonRespons
 
   try {
     if (path === '/cars' && method === 'GET') {
-      const snapshot = await getDocs(collection(db, 'cars'));
+      const snapshot = await getDocs(collection(db, 'car'));
       const carsData = snapshot.docs.map((entry) => entry.data());
       return createApiJsonResponse(carsData);
     }
@@ -246,7 +246,7 @@ const apiFetch = async (url: string, init?: RequestInit): Promise<ApiJsonRespons
     if (path === '/cars' && method === 'POST') {
       const id = createNumericId();
       const newCar = { id, ...(body as Omit<Car, 'id'>) };
-      await setDoc(doc(db, 'cars', String(id)), newCar);
+      await setDoc(doc(db, 'car', String(id)), newCar);
       return createApiJsonResponse(newCar, 201);
     }
 
@@ -261,7 +261,7 @@ const apiFetch = async (url: string, init?: RequestInit): Promise<ApiJsonRespons
       };
 
       await runTransaction(db, async (transaction) => {
-        const carRef = doc(db, 'cars', String(bookingInput.carId));
+        const carRef = doc(db, 'car', String(bookingInput.carId));
         const carSnap = await transaction.get(carRef);
         if (!carSnap.exists()) {
           throw new Error('Car not found');
@@ -296,7 +296,7 @@ const apiFetch = async (url: string, init?: RequestInit): Promise<ApiJsonRespons
 
     if (path.startsWith('/cars/') && method === 'PATCH') {
       const id = Number(path.split('/')[2]);
-      const carRef = doc(db, 'cars', String(id));
+      const carRef = doc(db, 'car', String(id));
       await setDoc(carRef, body as Partial<Car>, { merge: true });
       const updated = await getDoc(carRef);
       return createApiJsonResponse(updated.data() ?? null);
@@ -326,7 +326,7 @@ const apiFetch = async (url: string, init?: RequestInit): Promise<ApiJsonRespons
         const nextBooking = { ...currentBooking, ...patchData };
 
         if (currentBooking.status !== 'completed' && patchData.status === 'completed') {
-          const carRef = doc(db, 'cars', String(currentBooking.carId));
+          const carRef = doc(db, 'car', String(currentBooking.carId));
           const carSnap = await transaction.get(carRef);
           if (carSnap.exists()) {
             const carData = carSnap.data() as Partial<Car>;
@@ -344,7 +344,7 @@ const apiFetch = async (url: string, init?: RequestInit): Promise<ApiJsonRespons
 
     if (path.startsWith('/cars/') && method === 'DELETE') {
       const id = Number(path.split('/')[2]);
-      await deleteDoc(doc(db, 'cars', String(id)));
+      await deleteDoc(doc(db, 'car', String(id)));
       return createApiJsonResponse({ success: true });
     }
 
