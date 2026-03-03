@@ -2004,7 +2004,7 @@ const DLRentApp = () => {
     if (typeof window === 'undefined') return 'dark';
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
     if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    return 'light';
   });
   const [cars, setCars] = useState<Car[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
