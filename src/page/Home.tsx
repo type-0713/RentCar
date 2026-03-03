@@ -28,7 +28,10 @@ const ENABLE_GOOGLE_AUTH = import.meta.env.VITE_ENABLE_GOOGLE_AUTH !== 'false';
 const ENABLE_APPLE_AUTH = import.meta.env.VITE_ENABLE_APPLE_AUTH !== 'false';
 const ENABLE_MICROSOFT_AUTH = import.meta.env.VITE_ENABLE_MICROSOFT_AUTH !== 'false';
 const MAX_CAR_IMAGES = 5;
-const MAX_IMAGE_SIZE_MB = 10;
+const MAX_IMAGE_SIZE_MB = 6;
+const MAX_IMAGE_DIMENSION = 1600;
+const MAX_SINGLE_IMAGE_BASE64_CHARS = 240_000;
+const MAX_TOTAL_GALLERY_BASE64_CHARS = 820_000;
 
 const formatDateInput = (date: Date) => {
   const year = date.getFullYear();
@@ -1365,24 +1368,89 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
       }
     }
 
-    const readAsBase64 = (file: File) =>
+    const compressForFirestore = (file: File) =>
       new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result ?? ''));
-        reader.onerror = () => reject(new Error('Failed to read image file.'));
-        reader.readAsDataURL(file);
+        const image = new Image();
+        const objectUrl = URL.createObjectURL(file);
+
+        image.onload = () => {
+          try {
+            let width = image.width;
+            let height = image.height;
+            if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+              const ratio = Math.min(MAX_IMAGE_DIMENSION / width, MAX_IMAGE_DIMENSION / height);
+              width = Math.max(1, Math.round(width * ratio));
+              height = Math.max(1, Math.round(height * ratio));
+            }
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            if (!context) {
+              URL.revokeObjectURL(objectUrl);
+              reject(new Error('Could not process image.'));
+              return;
+            }
+
+            let quality = 0.82;
+            let dataUrl = '';
+            for (let attempt = 0; attempt < 8; attempt += 1) {
+              canvas.width = width;
+              canvas.height = height;
+              context.clearRect(0, 0, width, height);
+              context.drawImage(image, 0, 0, width, height);
+              dataUrl = canvas.toDataURL('image/jpeg', quality);
+
+              if (dataUrl.length <= MAX_SINGLE_IMAGE_BASE64_CHARS) {
+                break;
+              }
+
+              if (quality > 0.5) {
+                quality -= 0.08;
+              } else {
+                width = Math.max(700, Math.round(width * 0.86));
+                height = Math.max(500, Math.round(height * 0.86));
+              }
+            }
+
+            URL.revokeObjectURL(objectUrl);
+            resolve(dataUrl);
+          } catch (compressError) {
+            URL.revokeObjectURL(objectUrl);
+            reject(compressError);
+          }
+        };
+
+        image.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error('Failed to read image file.'));
+        };
+
+        image.src = objectUrl;
       });
 
     try {
-      const uploadedImages = (await Promise.all(files.map(readAsBase64))).filter((img) => img.trim().length > 0);
-      setNewCar((prev) => {
-        const merged = [...prev.imageGallery, ...uploadedImages].slice(0, MAX_CAR_IMAGES);
-        return {
-          ...prev,
-          imageGallery: merged,
-          imageBase64: merged[0] ?? ''
-        };
-      });
+      const uploadedImages = (await Promise.all(files.map(compressForFirestore))).filter((img) => img.trim().length > 0);
+      let merged = [...newCar.imageGallery, ...uploadedImages].slice(0, MAX_CAR_IMAGES);
+
+      while (merged.join('').length > MAX_TOTAL_GALLERY_BASE64_CHARS && merged.length > 0) {
+        merged = merged.slice(0, -1);
+      }
+
+      if (merged.length === 0) {
+        alert('Images are too large for Firestore. Please upload smaller images.');
+        e.target.value = '';
+        return;
+      }
+
+      if (merged.length < newCar.imageGallery.length + uploadedImages.length) {
+        alert('Some images were skipped to stay within Firestore size limits.');
+      }
+
+      setNewCar((prev) => ({
+        ...prev,
+        imageGallery: merged,
+        imageBase64: merged[0] ?? ''
+      }));
       e.target.value = '';
     } catch (error) {
       console.error(error);
