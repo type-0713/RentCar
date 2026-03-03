@@ -82,7 +82,6 @@ interface Car {
   price: string;
   features: string[];
   image: string;
-  imageBase64?: string;
   imageGallery?: string[];
   rating: number;
   quantity: number;
@@ -118,7 +117,6 @@ interface NewCarInput {
   price: string;
   features: string[];
   image: string;
-  imageBase64?: string;
   imageGallery: string[];
   rating: number;
   quantity: number;
@@ -773,13 +771,13 @@ const CarDetail = ({ carId, onNavigate, allCars, onBookCar }: CarDetailProps) =>
 
   const carInfoCards: Array<{ icon: ReactNode; label: string; value: string }> = [
     { icon: <Star className="w-6 h-6 text-yellow-400" />, label: 'Admin Rating', value: car.rating.toFixed(1) },
-    { icon: <span className="text-2xl font-bold text-teal-300">€</span>, label: 'Price / Day', value: car.price },
+    { icon: <span className="text-2xl font-bold text-teal-300">EUR</span>, label: 'Price / Day', value: car.price },
     { icon: <CarIcon className="w-6 h-6 text-blue-300" />, label: 'Available Units', value: String(car.quantity) },
     { icon: <Check className="w-6 h-6 text-emerald-300" />, label: 'Features Added', value: String(car.features.length) },
   ];
 
   const galleryImages = (car.imageGallery ?? []).filter((image) => typeof image === 'string' && image.trim().length > 0);
-  const carouselImages = galleryImages.length > 0 ? galleryImages : (car.imageBase64 ? [car.imageBase64] : []);
+  const carouselImages = galleryImages;
   const safeImageIndex = carouselImages.length > 0 ? currentImageIndex % carouselImages.length : 0;
   const primaryImage = carouselImages[safeImageIndex] ?? null;
   const sideImages = carouselImages.filter((_, idx) => idx !== safeImageIndex);
@@ -1322,7 +1320,6 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
     price: '',
     features: [],
     image: 'CAR',
-    imageBase64: '',
     imageGallery: [],
     rating: 4.8,
     quantity: 1
@@ -1397,8 +1394,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
         const merged = [...prev.imageGallery, ...uploadedUrls].slice(0, MAX_CAR_IMAGES);
         return {
           ...prev,
-          imageGallery: merged,
-          imageBase64: merged[0] ?? ''
+          imageGallery: merged
         };
       });
     } catch (error) {
@@ -1415,8 +1411,7 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
       const nextGallery = prev.imageGallery.filter((_, i) => i !== index);
       return {
         ...prev,
-        imageGallery: nextGallery,
-        imageBase64: nextGallery[0] ?? ''
+        imageGallery: nextGallery
       };
     });
   };
@@ -1456,7 +1451,6 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
         price: '',
         features: [],
         image: 'CAR',
-        imageBase64: '',
         imageGallery: [],
         rating: 4.8,
         quantity: 1
@@ -1627,8 +1621,8 @@ const AdminPanel = ({ cars, bookings, onAddCar, onDeleteCar, messages, onSendMes
             {cars.map((car) => (
               <div key={car.id} className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-2xl p-6">
                 <div className="flex items-start justify-between mb-4">
-                  {(car.imageGallery?.[0] ?? car.imageBase64) ? (
-                    <img src={car.imageGallery?.[0] ?? car.imageBase64} alt={car.name} className="w-20 h-20 object-cover rounded-xl border border-white/20" />
+                  {car.imageGallery?.[0] ? (
+                    <img src={car.imageGallery[0]} alt={car.name} className="w-20 h-20 object-cover rounded-xl border border-white/20" />
                   ) : (
                     <div className="text-5xl">{car.image}</div>
                   )}
@@ -1948,9 +1942,9 @@ const CarPark = ({ onNavigate, cars }: CarParkProps) => {
               >
                 <div className="relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-3xl overflow-hidden hover:border-teal-500/50 transition h-full flex flex-col">
                   <div className="relative h-56 bg-gradient-to-br from-teal-500/20 to-blue-500/20 flex items-center justify-center overflow-hidden">
-                    {(car.imageGallery?.[0] ?? car.imageBase64) ? (
+                    {car.imageGallery?.[0] ? (
                       <img
-                        src={car.imageGallery?.[0] ?? car.imageBase64}
+                        src={car.imageGallery[0]}
                         alt={car.name}
                         className="h-full w-full object-cover group-hover:scale-110 transition duration-500"
                       />
@@ -2227,13 +2221,7 @@ const DLRentApp = () => {
             imageGallery:
               Array.isArray(car.imageGallery) && car.imageGallery.length > 0
                 ? car.imageGallery.filter((img): img is string => typeof img === 'string' && img.trim().length > 0)
-                : car.imageBase64
-                  ? [car.imageBase64]
-                  : [],
-            imageBase64:
-              (Array.isArray(car.imageGallery) && car.imageGallery.length > 0
-                ? car.imageGallery.find((img): img is string => typeof img === 'string' && img.trim().length > 0)
-                : car.imageBase64) ?? '',
+                : [],
             quantity: Number.isFinite(car.quantity) ? Math.max(0, Math.floor(Number(car.quantity))) : 1
           }))
         );
@@ -2307,13 +2295,7 @@ const DLRentApp = () => {
                 imageGallery:
                   Array.isArray(car.imageGallery) && car.imageGallery.length > 0
                     ? car.imageGallery.filter((img): img is string => typeof img === 'string' && img.trim().length > 0)
-                    : car.imageBase64
-                      ? [car.imageBase64]
-                      : [],
-                imageBase64:
-                  (Array.isArray(car.imageGallery) && car.imageGallery.length > 0
-                    ? car.imageGallery.find((img): img is string => typeof img === 'string' && img.trim().length > 0)
-                    : car.imageBase64) ?? '',
+                    : [],
                 quantity: Number.isFinite(car.quantity) ? Math.max(0, Math.floor(Number(car.quantity))) : 1
               }));
 
@@ -2686,8 +2668,7 @@ const DLRentApp = () => {
     const payload: Omit<Car, 'id'> = {
       ...newCar,
       imageGallery: newCar.imageGallery,
-      imageBase64: newCar.imageGallery[0] ?? newCar.imageBase64 ?? '',
-      price: newCar.price.startsWith('€') ? newCar.price : `€${newCar.price}`,
+      price: newCar.price.startsWith('EUR ') ? newCar.price : `EUR ${newCar.price}`,
       quantity: Math.max(1, newCar.quantity)
     };
 
@@ -2714,13 +2695,7 @@ const DLRentApp = () => {
         imageGallery:
           Array.isArray(createdCar.imageGallery) && createdCar.imageGallery.length > 0
             ? createdCar.imageGallery.filter((img): img is string => typeof img === 'string' && img.trim().length > 0)
-            : createdCar.imageBase64
-              ? [createdCar.imageBase64]
-              : newCar.imageGallery,
-        imageBase64:
-          (Array.isArray(createdCar.imageGallery) && createdCar.imageGallery.length > 0
-            ? createdCar.imageGallery.find((img): img is string => typeof img === 'string' && img.trim().length > 0)
-            : createdCar.imageBase64) ?? newCar.imageGallery[0] ?? ''
+            : newCar.imageGallery
       };
 
       setCars((prev) => [
